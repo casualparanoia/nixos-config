@@ -1,0 +1,25 @@
+{ ... }:
+
+{
+  imports = [
+    ./appearance.nix
+    ./packages.nix
+    ./dotfiles.nix
+    ./niri.nix
+    ./mime.nix
+    ./cli.nix
+    ./desktop.nix
+    ./alacritty.nix
+    ./screenshot.nix
+    ./downloads.nix
+
+  ];
+
+  my.dotfiles.mode = "live";
+
+  home = {
+    username = "casua";
+    homeDirectory = "/home/casua";
+    stateVersion = "26.05";
+  };
+}

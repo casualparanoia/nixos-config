@@ -1,0 +1,11 @@
+# Nix build results
+/result
+/result-*
+
+# Editor temporary files
+*.swp
+*.swo
+*~
+
+# direnv state; .envrc itself should be tracked
+.direnv/

@@ -1,0 +1,646 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  nix-binary-inspect [OPTIONS] URL
+
+Inspect a prebuilt Linux archive for Nix packaging.
+
+It will:
+  1. Download/prefetch the archive through Nix.
+  2. Print the fetchurl-compatible hash.
+  3. Extract the archive.
+  4. Find ELF executables and shared libraries.
+  5. Read their DT_NEEDED dependencies.
+  6. Remove libraries bundled inside the archive.
+  7. Optionally query nix-locate for candidate Nixpkgs providers.
+  8. Verify candidate package attributes against the pkgs set from a NixOS flake.
+
+Options:
+  --no-locate         Do not query nix-locate.
+  --no-verify         Do not verify nix-locate candidates against a flake.
+  --flake REF         Flake reference used for candidate verification.
+                      Default: .
+  --config NAME       NixOS configuration name under nixosConfigurations.
+                      Default: nixos
+  --keep              Keep the temporary inspection directory.
+  -h, --help          Show this help.
+
+Examples:
+  nix-binary-inspect URL
+  nix-binary-inspect --no-locate URL
+  nix-binary-inspect --flake . --config nixos URL
+USAGE
+}
+
+use_locate=1
+use_verify=1
+keep=0
+flake_ref="."
+nixos_config="nixos"
+
+while (($#)); do
+  case "$1" in
+    --no-locate)
+      use_locate=0
+      shift
+      ;;
+
+    --no-verify)
+      use_verify=0
+      shift
+      ;;
+
+    --flake)
+      (($# >= 2)) || {
+        echo "error: --flake requires an argument" >&2
+        exit 2
+      }
+      flake_ref=$2
+      shift 2
+      ;;
+
+    --config)
+      (($# >= 2)) || {
+        echo "error: --config requires an argument" >&2
+        exit 2
+      }
+      nixos_config=$2
+      shift 2
+      ;;
+
+    --keep)
+      keep=1
+      shift
+      ;;
+
+    -h|--help)
+      usage
+      exit 0
+      ;;
+
+    --)
+      shift
+      break
+      ;;
+
+    -*)
+      echo "error: unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+done
+
+if (($# != 1)); then
+  usage >&2
+  exit 2
+fi
+
+url=$1
+
+required=(
+  nix
+  jq
+  file
+  patchelf
+  tar
+  find
+  sort
+  awk
+  cut
+  comm
+  wc
+  sed
+  head
+  basename
+)
+
+missing=()
+
+for cmd in "${required[@]}"; do
+  command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
+done
+
+if ((${#missing[@]})); then
+  printf 'error: missing required command(s): %s\n' "${missing[*]}" >&2
+  exit 1
+fi
+
+is_glibc_runtime() {
+  case "$1" in
+    ld-linux-x86-64.so.2 \
+      |libc.so.6 \
+      |libm.so.6 \
+      |libdl.so.2 \
+      |libpthread.so.0 \
+      |librt.so.1 \
+      |libresolv.so.2 \
+      |libutil.so.1)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# Prefetch
+# ---------------------------------------------------------------------------
+
+printf '==> Prefetching source with Nix\n'
+
+prefetch_json=$(
+  nix store prefetch-file --json "$url"
+)
+
+hash=$(
+  jq -r '.hash // empty' <<<"$prefetch_json"
+)
+
+# Nix versions have used slightly different JSON naming conventions.
+src=$(
+  jq -r '.storePath // .path // empty' <<<"$prefetch_json"
+)
+
+if [[ -z $hash || -z $src ]]; then
+  echo "error: could not read hash/store path from prefetch JSON:" >&2
+  printf '%s\n' "$prefetch_json" >&2
+  exit 1
+fi
+
+printf 'URL:        %s\n' "$url"
+printf 'Hash:       %s\n' "$hash"
+printf 'Store path: %s\n\n' "$src"
+
+printf 'Nix snippet:\n'
+printf '  hash = "%s";\n\n' "$hash"
+
+# ---------------------------------------------------------------------------
+# Temporary working directory
+# ---------------------------------------------------------------------------
+
+workdir=$(
+  mktemp -d -t nix-binary-inspect.XXXXXXXX
+)
+
+root="$workdir/root"
+
+mkdir -p "$root"
+
+cleanup() {
+  if ((keep)); then
+    printf '\nInspection directory kept at:\n  %s\n' "$workdir"
+  else
+    rm -rf -- "$workdir"
+  fi
+}
+
+trap cleanup EXIT
+
+# ---------------------------------------------------------------------------
+# Extract archive
+# ---------------------------------------------------------------------------
+
+printf '==> Extracting archive\n'
+
+if tar -tf "$src" >/dev/null 2>&1; then
+
+  tar \
+    --no-same-owner \
+    --no-same-permissions \
+    -xf "$src" \
+    -C "$root"
+
+elif command -v unzip >/dev/null 2>&1 \
+  && unzip -tqq "$src" >/dev/null 2>&1
+then
+
+  unzip -q "$src" -d "$root"
+
+else
+
+  echo "error: unsupported archive." >&2
+  echo "v1.1 supports tar archives and zip archives when unzip is installed." >&2
+  exit 1
+
+fi
+
+# ---------------------------------------------------------------------------
+# Data files
+# ---------------------------------------------------------------------------
+
+needed_tsv="$workdir/needed.tsv"
+bundled_txt="$workdir/bundled.txt"
+elf_txt="$workdir/elf-files.txt"
+
+: >"$needed_tsv"
+: >"$bundled_txt"
+: >"$elf_txt"
+
+# ---------------------------------------------------------------------------
+# Scan ELF files
+# ---------------------------------------------------------------------------
+
+printf '==> Scanning ELF files\n'
+
+while IFS= read -r -d '' path; do
+
+  description=$(
+    file -Lb -- "$path" 2>/dev/null || true
+  )
+
+  [[ $description == ELF* ]] || continue
+
+  rel=${path#"$root"/}
+
+  printf '%s\n' "$rel" >>"$elf_txt"
+
+  # A bundled shared object may satisfy another ELF's dependency.
+  base=$(basename -- "$path")
+
+  if [[ $base == *.so* ]]; then
+    printf '%s\n' "$base" >>"$bundled_txt"
+  fi
+
+  # SONAME is more important than the physical filename.
+  #
+  # Example:
+  #   physical file: libfoo.so.1.2.3
+  #   SONAME:        libfoo.so.1
+  soname=$(
+    patchelf --print-soname "$path" 2>/dev/null || true
+  )
+
+  if [[ -n $soname ]]; then
+    printf '%s\n' "$soname" >>"$bundled_txt"
+  fi
+
+  # Read ELF DT_NEEDED entries.
+  while IFS= read -r dep; do
+
+    [[ -n $dep ]] || continue
+
+    printf '%s\t%s\n' \
+      "$dep" \
+      "$rel" \
+      >>"$needed_tsv"
+
+  done < <(
+    patchelf --print-needed "$path" 2>/dev/null || true
+  )
+
+done < <(
+  find "$root" -type f -print0
+)
+
+# Symlink names can also satisfy dependencies.
+#
+# Example:
+#   libfoo.so.1 -> libfoo.so.1.2.3
+while IFS= read -r -d '' path; do
+
+  printf '%s\n' \
+    "$(basename -- "$path")" \
+    >>"$bundled_txt"
+
+done < <(
+  find "$root" -type l -print0
+)
+
+sort -u -o "$bundled_txt" "$bundled_txt"
+sort -u -o "$elf_txt" "$elf_txt"
+sort -u -o "$needed_tsv" "$needed_tsv"
+
+# ---------------------------------------------------------------------------
+# Determine external dependencies
+# ---------------------------------------------------------------------------
+
+all_needed="$workdir/all-needed.txt"
+external="$workdir/external-needed.txt"
+
+cut -f1 "$needed_tsv" \
+  | sort -u \
+  >"$all_needed"
+
+# Both files must be sorted for comm.
+#
+# External =
+#   everything DT_NEEDED
+#            -
+#   everything supplied by this archive
+comm -23 \
+  "$all_needed" \
+  "$bundled_txt" \
+  >"$external"
+
+elf_count=$(wc -l <"$elf_txt")
+needed_count=$(wc -l <"$all_needed")
+external_count=$(wc -l <"$external")
+
+printf \
+  'Found %d ELF file(s), %d unique DT_NEEDED name(s), %d external name(s).\n\n' \
+  "$elf_count" \
+  "$needed_count" \
+  "$external_count"
+
+# ---------------------------------------------------------------------------
+# Report: ELF files
+# ---------------------------------------------------------------------------
+
+printf '==> ELF files\n'
+
+sed 's/^/  /' "$elf_txt"
+
+# ---------------------------------------------------------------------------
+# Report: bundled libraries
+# ---------------------------------------------------------------------------
+
+printf '\n==> Bundled libraries\n'
+
+if [[ -s $bundled_txt ]]; then
+  sed 's/^/  /' "$bundled_txt"
+else
+  echo '  (none detected)'
+fi
+
+# ---------------------------------------------------------------------------
+# Report: external dependencies
+# ---------------------------------------------------------------------------
+
+printf '\n==> External DT_NEEDED dependencies\n'
+
+if [[ ! -s $external ]]; then
+  echo '  (none)'
+  exit 0
+fi
+
+while IFS= read -r dep; do
+
+  printf '  %-32s' "$dep"
+
+  if is_glibc_runtime "$dep"; then
+    printf ' [glibc/runtime]\n'
+  else
+    printf '\n'
+  fi
+
+done <"$external"
+
+# ---------------------------------------------------------------------------
+# Report: which binary requested each library
+# ---------------------------------------------------------------------------
+
+printf '\n==> Required by\n'
+
+while IFS= read -r dep; do
+
+  printf '%s\n' "$dep"
+
+  awk \
+    -F '\t' \
+    -v dep="$dep" \
+    '$1 == dep { print "    " $2 }' \
+    "$needed_tsv" \
+    | sort -u
+
+done <"$external"
+
+# ---------------------------------------------------------------------------
+# Helpers for provider normalization / flake verification
+# ---------------------------------------------------------------------------
+
+# nix-locate reports package outputs such as:
+#
+#   libGL.out
+#   fontconfig.lib
+#   kdePackages.wayland.out
+#
+# Split a known output suffix from the package attribute path.
+normalize_candidate() {
+  local candidate=$1
+
+  case "$candidate" in
+    *.out|*.lib|*.dev|*.bin|*.debug|*.static|*.doc|*.man)
+      candidate_base=${candidate%.*}
+      candidate_output=${candidate##*.}
+      ;;
+    *)
+      candidate_base=$candidate
+      candidate_output=""
+      ;;
+  esac
+}
+
+declare -A verify_cache_ok=()
+declare -A verify_cache_pname=()
+declare -A verify_cache_version=()
+declare -A verify_cache_path=()
+
+verify_candidate() {
+  local candidate=$1
+  local base output key
+  local pname version out_path
+
+  normalize_candidate "$candidate"
+  base=$candidate_base
+  output=$candidate_output
+  key="${base}|${output}"
+
+  if [[ -v "verify_cache_ok[$key]" ]]; then
+    [[ ${verify_cache_ok[$key]} == 1 ]]
+    return
+  fi
+
+  # Verify that the package attribute exists in the pkgs set used by this
+  # exact NixOS configuration. This intentionally does not build the package.
+  if ! pname=$(
+    nix eval --raw \
+      "${flake_ref}#nixosConfigurations.${nixos_config}.pkgs.${base}.pname" \
+      2>/dev/null
+  ); then
+    verify_cache_ok["$key"]=0
+    return 1
+  fi
+
+  version=$(
+    nix eval --raw \
+      "${flake_ref}#nixosConfigurations.${nixos_config}.pkgs.${base}.version" \
+      2>/dev/null \
+      || true
+  )
+
+  if [[ -n $output ]]; then
+    out_path=$(
+      nix eval --raw \
+        "${flake_ref}#nixosConfigurations.${nixos_config}.pkgs.${base}.${output}.outPath" \
+        2>/dev/null \
+        || true
+    )
+  else
+    out_path=$(
+      nix eval --raw \
+        "${flake_ref}#nixosConfigurations.${nixos_config}.pkgs.${base}.outPath" \
+        2>/dev/null \
+        || true
+    )
+  fi
+
+  verify_cache_ok["$key"]=1
+  verify_cache_pname["$key"]=$pname
+  verify_cache_version["$key"]=$version
+  verify_cache_path["$key"]=$out_path
+
+  return 0
+}
+
+print_verified_candidate() {
+  local candidate=$1
+  local base output key pname version out_path
+
+  normalize_candidate "$candidate"
+  base=$candidate_base
+  output=$candidate_output
+  key="${base}|${output}"
+
+  pname=${verify_cache_pname[$key]-}
+  version=${verify_cache_version[$key]-}
+  out_path=${verify_cache_path[$key]-}
+
+  printf '    %-36s' "$candidate"
+  printf ' -> %s' "$pname"
+
+  if [[ -n $version ]]; then
+    printf ' %s' "$version"
+  fi
+
+  if [[ -n $output ]]; then
+    printf '  [output: %s]' "$output"
+  fi
+
+  printf '\n'
+
+  if [[ -n $out_path ]]; then
+    printf '      %s\n' "$out_path"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Optional nix-index lookup
+# ---------------------------------------------------------------------------
+
+if ((use_locate)); then
+
+  printf '\n==> Candidate Nixpkgs providers\n'
+
+  if ! command -v nix-locate >/dev/null 2>&1; then
+
+    echo '  nix-locate is not installed/configured; skipping provider lookup.'
+    echo '  The ELF dependency analysis above is still valid.'
+
+    exit 0
+  fi
+
+  if ((use_verify)); then
+    printf 'Verification target: %s#nixosConfigurations.%s.pkgs\n\n' \
+      "$flake_ref" \
+      "$nixos_config"
+  fi
+
+  locate_failed=0
+
+  while IFS= read -r dep; do
+
+    # glibc/runtime dependencies are handled by the standard environment and
+    # are deliberately excluded from provider lookup.
+    if is_glibc_runtime "$dep"; then
+      continue
+    fi
+
+    printf '%s:\n' "$dep"
+
+    if ! raw_results=$(
+      nix-locate "$dep" 2>&1
+    ); then
+
+      echo '    nix-locate query failed.'
+      echo '    The nix-index database may not be configured.'
+
+      first_error=$(
+        head -n 1 <<<"$raw_results"
+      )
+
+      if [[ -n $first_error ]]; then
+        printf '    %s\n' "$first_error"
+      fi
+
+      locate_failed=1
+      break
+    fi
+
+    candidates=$(
+      awk \
+        -v name="$dep" '
+          {
+            path = $NF
+            n = split(path, parts, "/")
+
+            if (parts[n] == name)
+              print $1
+          }
+        ' <<<"$raw_results" \
+        | sort -u \
+        | head -n 8
+    )
+
+    if [[ -z $candidates ]]; then
+      echo '    (no exact-basename candidate found)'
+      continue
+    fi
+
+    if ((use_verify)); then
+
+      verified=0
+
+      while IFS= read -r candidate; do
+        [[ -n $candidate ]] || continue
+
+        if verify_candidate "$candidate"; then
+          print_verified_candidate "$candidate"
+          verified=1
+        fi
+      done <<<"$candidates"
+
+      if ((!verified)); then
+        echo '    (no candidate verified in the current flake)'
+        echo '    nix-locate candidates:'
+
+        while IFS= read -r candidate; do
+          [[ -n $candidate ]] || continue
+          printf '      %s\n' "$candidate"
+        done <<<"$candidates"
+      fi
+
+    else
+
+      while IFS= read -r candidate; do
+        [[ -n $candidate ]] || continue
+        printf '    %s\n' "$candidate"
+      done <<<"$candidates"
+
+    fi
+
+  done <"$external"
+
+  if ((locate_failed)); then
+    printf '\n'
+    echo 'Provider lookup was incomplete; dependency extraction itself succeeded.'
+  fi
+fi
