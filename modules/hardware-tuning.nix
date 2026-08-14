@@ -38,7 +38,7 @@ let
         { "UpThreshold": 72, "DownThreshold": 60, "FanSpeed": 62.5 },
         { "UpThreshold": 78, "DownThreshold": 67, "FanSpeed": 75.0 },
         { "UpThreshold": 84, "DownThreshold": 73, "FanSpeed": 87.5 },
-        { "UpThreshold": 95, "DownThreshold": 79, "FanSpeed": 100.0 }
+	{ "UpThreshold": 90, "DownThreshold": 79, "FanSpeed": 100.0 }
       ] |
 
       .FanConfigurations[1].TemperatureThresholds = [
@@ -49,13 +49,33 @@ let
         { "UpThreshold": 72, "DownThreshold": 60, "FanSpeed": 62.5 },
         { "UpThreshold": 78, "DownThreshold": 67, "FanSpeed": 75.0 },
         { "UpThreshold": 84, "DownThreshold": 73, "FanSpeed": 87.5 },
-        { "UpThreshold": 95, "DownThreshold": 79, "FanSpeed": 100.0 }
+	{ "UpThreshold": 90, "DownThreshold": 79, "FanSpeed": 100.0 }
       ]
     ' \
       "${pkgsUnstable.nbfc-linux}/share/nbfc/configs/Asus ROG GL702ZC.json" \
       > "$out"
   '';
+  waitForAmdgpuHwmon = pkgs.writeShellScript "wait-for-amdgpu-hwmon" ''
+    set -eu
 
+    i=0
+    while [ "$i" -lt 300 ]; do
+      for h in /sys/class/hwmon/hwmon*; do
+        if [ -r "$h/name" ]; then
+          IFS= read -r name < "$h/name"
+          if [ "$name" = "amdgpu" ]; then
+            exit 0
+          fi
+        fi
+      done
+
+      i=$((i + 1))
+      ${pkgs.coreutils}/bin/sleep 0.1
+    done
+
+    echo "NBFC: timed out waiting for amdgpu hwmon" >&2
+    exit 1
+  '';
 
 in
 {
@@ -128,6 +148,10 @@ services.asusd = {
 # NBFC's preferred EC backend; we already verified it works on this machine.
 boot.kernelModules = [ "ec_sys" ];
 
+boot.extraModprobeConfig = ''
+  options ec_sys write_support=1
+'';
+
 # Main NBFC service configuration.
 environment.etc."nbfc/nbfc.json".text = builtins.toJSON {
   SelectedConfigId = "${nbfcGl702zcConfig}";
@@ -153,20 +177,20 @@ systemd.services.nbfc_service = {
   wantedBy = [ "multi-user.target" ];
   after = [ "systemd-modules-load.service" ];
 
-  # nbfc_service may call tools such as modprobe.
   path = [ pkgs.kmod ];
 
   serviceConfig = {
     Type = "simple";
+
+    ExecStartPre = waitForAmdgpuHwmon;
 
     ExecStart =
       "${pkgsUnstable.nbfc-linux}/bin/nbfc_service "
       + "--config-file /etc/nbfc/nbfc.json";
 
     Restart = "on-failure";
-    RestartSec = 2;
+    RestartSec = 5;
   };
 };
-
 
 }

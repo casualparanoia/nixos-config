@@ -26,8 +26,11 @@ let
     set -u
 
     dir="${logDir}"
-    tmp="$dir/state-last.tmp"
-    out="$dir/state-last.txt"
+    boot_id="$(cat /proc/sys/kernel/random/boot_id)"
+
+    tmp="$dir/state-$boot_id-last.tmp"
+    out="$dir/state-$boot_id-last.txt"
+
 
     {
       echo "============================================================"

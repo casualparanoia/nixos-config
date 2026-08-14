@@ -12,7 +12,7 @@
     ./alacritty.nix
     ./screenshot.nix
     ./downloads.nix
-
+    ./engsci.nix
   ];
 
   my.dotfiles.mode = "live";

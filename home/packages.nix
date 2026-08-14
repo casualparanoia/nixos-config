@@ -25,6 +25,7 @@ in
 	pkgs.imv
 	pkgsUnstable.spotify
 	pkgs.deezer-desktop
+	pkgsUnstable.calibre
 
 	# Video
 	pkgsUnstable.haruna

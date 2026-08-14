@@ -1,0 +1,47 @@
+---
+title: Rebuild Runbook
+description: Normal flake-based commands and safety distinctions for evaluating and activating this NixOS configuration.
+tags:
+  - runbook
+  - nixos
+  - flakes
+  - rebuild
+type: runbook
+status: active
+date: 2026-08-14
+---
+
+# Rebuild Runbook
+
+Assume commands are run from the repository root.
+
+## Validate/build without activation
+
+```bash
+sudo nixos-rebuild build --flake .#nixos
+```
+
+Use this to prove that evaluation and realization succeed without changing the running system profile.
+
+## Activate temporarily
+
+```bash
+sudo nixos-rebuild test --flake .#nixos
+```
+
+This activates the new configuration for the current boot but does not make it the boot default.
+
+## Activate and make default
+
+```bash
+sudo nixos-rebuild switch --flake .#nixos
+```
+
+## Input updates
+
+`flake.lock` is the reproducibility boundary. Review lockfile changes when updating inputs; do not treat an input update as equivalent to an ordinary rebuild.
+
+## Related
+
+- [[System Architecture]]
+- [[ADR 0002 - Stable Plus Unstable Package Sets]]
