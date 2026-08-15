@@ -7,7 +7,7 @@ tags:
   - setup
   - nixos
 type: runbook
-status: planned
+status: active
 date: 2026-08-14
 ---
 
@@ -58,6 +58,40 @@ npx quartz build --serve
 ```
 
 The development site is normally available on local port 8080 and watches content changes.
+
+## Implementation
+
+Quartz 5
+Node requirement: >=22
+Node currently supplied through temporary nix shell
+Quartz checkout: ~/quartz
+Quartz branch: system-knowledge-base
+Content:
+    ~/quartz/content -> ../nixos-config/docs
+
+Local server:
+    http://localhost:8080
+
+Canonical documentation:
+    ~/nixos-config/docs
+
+Analytics:
+    disabled
+
+RSS / sitemap:
+    disabled
+
+Encrypted pages:
+    disabled
+
+Excalidraw:
+    disabled
+
+Known npm audit state:
+    brace-expansion advisory
+    esbuild Windows-only advisory
+    sharp/libvips advisory
+    no forced dependency upgrades applied
 
 ## Nix integration later
 

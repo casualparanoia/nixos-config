@@ -12,7 +12,10 @@ in
 	# File management 
 	pkgs.kdePackages.dolphin
 
-	# Alt
+	# AI
+	pkgsUnstable.codex
+	pkgsUnstable.opencode-desktop
+	pkgsUnstable.antigravity-ide-fhs
 
 	# Archive
 	pkgs.kdePackages.ark

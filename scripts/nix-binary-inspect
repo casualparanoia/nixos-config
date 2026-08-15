@@ -6,17 +6,23 @@ usage() {
 Usage:
   nix-binary-inspect [OPTIONS] URL
 
-Inspect a prebuilt Linux archive for Nix packaging.
+Inspect a prebuilt Linux package/archive for Nix packaging.
+
+Supported input formats:
+  - tar archives (tar.gz, tar.xz, tar.zst, ... as supported by tar)
+  - zip archives (when unzip is installed)
+  - Debian packages (.deb; requires dpkg-deb from Nixpkgs package dpkg)
 
 It will:
-  1. Download/prefetch the archive through Nix.
+  1. Download/prefetch the package/archive through Nix.
   2. Print the fetchurl-compatible hash.
-  3. Extract the archive.
-  4. Find ELF executables and shared libraries.
-  5. Read their DT_NEEDED dependencies.
-  6. Remove libraries bundled inside the archive.
-  7. Optionally query nix-locate for candidate Nixpkgs providers.
-  8. Verify candidate package attributes against the pkgs set from a NixOS flake.
+  3. Detect and extract the package/archive.
+  4. For .deb files, print useful Debian package metadata.
+  5. Find ELF executables and shared libraries.
+  6. Read their DT_NEEDED dependencies.
+  7. Remove libraries bundled inside the package/archive.
+  8. Optionally query nix-locate for candidate Nixpkgs providers.
+  9. Verify candidate package attributes against the pkgs set from a NixOS flake.
 
 Options:
   --no-locate         Do not query nix-locate.
@@ -206,31 +212,117 @@ cleanup() {
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
-# Extract archive
+# Detect and extract package/archive
 # ---------------------------------------------------------------------------
 
-printf '==> Extracting archive\n'
+printf '==> Detecting source format\n'
 
-if tar -tf "$src" >/dev/null 2>&1; then
+source_description=$(
+  file -Lb -- "$src" 2>/dev/null || true
+)
 
-  tar \
-    --no-same-owner \
-    --no-same-permissions \
-    -xf "$src" \
-    -C "$root"
+archive_type=""
+
+# Detect .deb from its contents, not merely its filename. This lets us emit a
+# useful error when dpkg-deb is unavailable instead of falling through to a
+# generic "unsupported archive" message.
+if [[ $source_description == Debian\ binary\ package* ]]; then
+  archive_type="deb"
+
+elif tar -tf "$src" >/dev/null 2>&1; then
+  archive_type="tar"
+
+elif [[ $source_description == Zip\ archive\ data* ]]; then
+  archive_type="zip"
 
 elif command -v unzip >/dev/null 2>&1 \
   && unzip -tqq "$src" >/dev/null 2>&1
 then
+  # Fallback for unusual zip files that file(1) did not identify cleanly.
+  archive_type="zip"
+fi
 
-  unzip -q "$src" -d "$root"
+case "$archive_type" in
+  deb)
+    printf 'Format:     Debian package (.deb)\n'
 
-else
+    if ! command -v dpkg-deb >/dev/null 2>&1; then
+      echo "error: this source is a Debian package, but dpkg-deb is unavailable." >&2
+      echo "On NixOS, provide it with pkgs.dpkg or run through nix shell nixpkgs#dpkg." >&2
+      exit 1
+    fi
 
-  echo "error: unsupported archive." >&2
-  echo "v1.1 supports tar archives and zip archives when unzip is installed." >&2
-  exit 1
+    if ! dpkg-deb --info "$src" >/dev/null 2>&1; then
+      echo "error: dpkg-deb could not read this Debian package." >&2
+      exit 1
+    fi
+    ;;
 
+  tar)
+    printf 'Format:     tar archive\n'
+    ;;
+
+  zip)
+    printf 'Format:     zip archive\n'
+
+    if ! command -v unzip >/dev/null 2>&1; then
+      echo "error: this source is a zip archive, but unzip is unavailable." >&2
+      echo "On NixOS, provide it with pkgs.unzip or run through nix shell nixpkgs#unzip." >&2
+      exit 1
+    fi
+
+    if ! unzip -tqq "$src" >/dev/null 2>&1; then
+      echo "error: unzip could not validate this zip archive." >&2
+      exit 1
+    fi
+    ;;
+
+  *)
+    echo "error: unsupported package/archive format." >&2
+    echo "Supported formats: tar, zip (with unzip), and Debian .deb (with dpkg-deb)." >&2
+    printf 'Detected by file(1): %s\n' "$source_description" >&2
+    exit 1
+    ;;
+esac
+
+printf 'file(1):    %s\n\n' "$source_description"
+
+printf '==> Extracting package/archive\n'
+
+case "$archive_type" in
+  deb)
+    dpkg-deb -x "$src" "$root"
+    ;;
+
+  tar)
+    tar \
+      --no-same-owner \
+      --no-same-permissions \
+      -xf "$src" \
+      -C "$root"
+    ;;
+
+  zip)
+    unzip -q "$src" -d "$root"
+    ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Debian package metadata
+# ---------------------------------------------------------------------------
+
+if [[ $archive_type == deb ]]; then
+  printf '\n==> Debian package metadata\n'
+
+  for field in Package Version Architecture Installed-Size Pre-Depends Depends Recommends; do
+    value=$(
+      dpkg-deb -f "$src" "$field" 2>/dev/null || true
+    )
+
+    [[ -n $value ]] || continue
+
+    printf '  %-15s %s\n' "$field:" "$value"
+  done
 fi
 
 # ---------------------------------------------------------------------------

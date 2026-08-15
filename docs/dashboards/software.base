@@ -1,0 +1,46 @@
+filters:
+  and:
+    - 'file.ext == "md"'
+    - 'type == "software"'
+
+properties:
+  file.name:
+    displayName: Software
+  status:
+    displayName: Status
+  tags:
+    displayName: Tags
+  'note["source-files"]':
+    displayName: Source files
+
+views:
+  - type: table
+    name: All Software
+    order:
+      - file.name
+      - status
+      - tags
+      - 'note["source-files"]'
+
+  - type: table
+    name: Open Choices
+    filters:
+      or:
+        - 'status == "undecided"'
+        - 'status == "deferred"'
+        - 'status == "experimental"'
+    order:
+      - file.name
+      - status
+      - tags
+      - 'note["source-files"]'
+
+  - type: table
+    name: Accepted
+    filters:
+      and:
+        - 'status == "accepted"'
+    order:
+      - file.name
+      - tags
+      - 'note["source-files"]'
