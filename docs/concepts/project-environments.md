@@ -8,14 +8,14 @@ tags:
   - science
 type: concept
 status: accepted
-date: 2026-08-14
+date: 2026-08-15
 aliases:
   - Scientific Project Environments
 ---
 
 # Project Environments
 
-The persistent Home Manager environment should contain broadly useful applications. Project-specific language packages, compilers, and scientific dependencies should move to project environments when they become substantial or fragile.
+The persistent Home Manager environment may contain broadly useful applications, editor services, debuggers, and baseline toolchains. Project-specific language packages, compiler versions, and scientific dependencies should move to project environments when they become substantial or fragile.
 
 Typical structure:
 

@@ -1,99 +1,107 @@
-{ pkgs, pkgsUnstable, helium, ... }:
-let 
+{
+  pkgs,
+  pkgsUnstable,
+  helium,
+  antigravity-nix,
+  ...
+}:
+let
   system = pkgs.stdenv.hostPlatform.system;
 in
 {
   home.packages = [
-	# Browser
-	pkgs.floorp-bin
-	pkgs.vivaldi
-	helium.packages.${system}.helium	
+    # Browser
+    pkgs.floorp-bin
+    pkgs.vivaldi
+    helium.packages.${system}.helium
 
-	# File management 
-	pkgs.kdePackages.dolphin
+    # File management
+    pkgs.kdePackages.dolphin
 
-	# AI
-	pkgsUnstable.codex
-	pkgsUnstable.opencode-desktop
-	pkgsUnstable.antigravity-ide-fhs
+    # AI
+    pkgsUnstable.codex
+    pkgsUnstable.opencode-desktop
+    antigravity-nix.packages.${system}.google-antigravity-ide
 
-	# Archive
-	pkgs.kdePackages.ark
-	pkgs._7zz
-	pkgsUnstable.ouch
+    # Archive
+    pkgs.kdePackages.ark
+    pkgs._7zz
+    pkgsUnstable.ouch
 
-	# Document / media
-	pkgs.kdePackages.okular
-	pkgs.kdePackages.gwenview
-	pkgs.imv
-	pkgsUnstable.spotify
-	pkgs.deezer-desktop
-	pkgsUnstable.calibre
+    # Document / media
+    pkgs.kdePackages.okular
+    pkgs.kdePackages.gwenview
+    pkgs.imv
+    pkgsUnstable.spotify
+    pkgs.deezer-desktop
+    pkgsUnstable.calibre
 
-	# Video
-	pkgsUnstable.haruna
-	pkgs.mpv
-	pkgs.vlc
+    # Video
+    pkgsUnstable.haruna
+    pkgs.mpv
+    pkgs.vlc
 
-	# Editor
-	pkgs.kdePackages.kate
+    # Editor
+    pkgs.kdePackages.kate
 
-	# VPN
-	pkgs.proton-vpn
+    # VPN
+    pkgs.proton-vpn
 
-	# Mail
-	pkgs.thunderbird
+    # Mail
+    pkgs.thunderbird
 
-	# Download Manager
-	#pkgs.persepolis
-	pkgsUnstable.motrix-next
+    # Download Manager
+    #pkgs.persepolis
+    pkgsUnstable.motrix-next
 
-	# Clipboard
-	#pkgs.copyq
+    # Clipboard
+    #pkgs.copyq
 
-	# Dolphin/KDE integration
-	pkgs.kdePackages.kservice
-	pkgs.kdePackages.qtsvg
-	pkgs.kdePackages.kio
-	pkgs.kdePackages.kio-fuse
-	pkgs.kdePackages.kio-extras
-	pkgs.qt6Packages.qtstyleplugin-kvantum	
-	pkgs.kdePackages.qtstyleplugin-kvantum
-	pkgs.libsForQt5.qtstyleplugin-kvantum	
+    # Communication
+    pkgs.signal-desktop
 
-	# ----- General CLI ----------
-	
-	pkgs.jq
-	pkgs.yq-go
-	pkgs.sd
-	pkgs.patchelf
+    # Dolphin/KDE integration
+    pkgs.kdePackages.kservice
+    pkgs.kdePackages.qtsvg
+    pkgs.kdePackages.kio
+    pkgs.kdePackages.kio-fuse
+    pkgs.kdePackages.kio-extras
+    pkgs.qt6Packages.qtstyleplugin-kvantum
+    pkgs.kdePackages.qtstyleplugin-kvantum
+    pkgs.libsForQt5.qtstyleplugin-kvantum
 
-	pkgs.dust
-	pkgs.duf
-	pkgs.bottom
-	pkgs.procs
+    # ----- General CLI ----------
 
-	pkgs.hyperfine
-	pkgs.fastfetch
-	pkgs.tealdeer
-	pkgs.tokei
+    pkgs.jq
+    pkgs.yq-go
+    pkgs.sd
+    pkgs.patchelf
 
-	pkgs.libqalculate
+    pkgs.dust
+    pkgs.duf
+    pkgs.bottom
+    pkgs.procs
 
-	pkgs.ffmpeg
-	pkgs.exiftool
+    pkgs.hyperfine
+    pkgs.fastfetch
+    pkgs.tealdeer
+    pkgs.tokei
 
-	# Rust coreutils
-	pkgs.uutils-coreutils
+    pkgs.libqalculate
 
-	# ----------- Version Control ------------
-	pkgs.git
-	pkgs.delta
-	pkgs.lazygit
+    pkgs.ffmpeg
+    pkgs.exiftool
 
-	pkgsUnstable.jujutsu
-	pkgsUnstable.lazyjj
+    # Rust coreutils
+    pkgs.uutils-coreutils
 
+    # ----------- Version Control ------------
+    pkgs.git
+    pkgs.delta
+    pkgs.lazygit
+
+    pkgsUnstable.jujutsu
+    pkgsUnstable.lazyjj
 
   ];
 }

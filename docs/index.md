@@ -7,7 +7,7 @@ tags:
   - knowledge-base
 type: index
 status: active
-date: 2026-08-14
+date: 2026-08-15
 ---
 
 # NixOS Knowledge Base
@@ -60,6 +60,8 @@ Deferred or undecided:
 ## Local packages and tooling
 
 - [[AB Download Manager]]
+- [[Antigravity]]
+- [[Development Tooling]]
 - [[Foreign Binary Packaging]]
 - [[Binary Packaging Runbook]]
 

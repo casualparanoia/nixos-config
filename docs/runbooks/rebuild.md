@@ -8,12 +8,21 @@ tags:
   - rebuild
 type: runbook
 status: active
-date: 2026-08-14
+date: 2026-08-15
 ---
 
 # Rebuild Runbook
 
 Assume commands are run from the repository root.
+
+## Format and evaluate
+
+```bash
+nix fmt
+nix flake check --no-build
+```
+
+`nix fmt` uses the formatter declared by the flake. The check evaluates flake outputs without realizing the complete NixOS closure.
 
 ## Validate/build without activation
 

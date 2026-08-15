@@ -13,6 +13,7 @@
     ./screenshot.nix
     ./downloads.nix
     ./engsci.nix
+    ./development.nix
   ];
 
   my.dotfiles.mode = "live";
