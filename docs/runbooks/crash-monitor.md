@@ -8,7 +8,7 @@ tags:
   - diagnostics
 type: runbook
 status: active
-date: 2026-08-15
+date: 2026-08-16
 source-files:
   - modules/crash-monitor.nix
 ---
@@ -53,6 +53,25 @@ previous-<boot-id>-live-pstore/
 
 The state snapshot is stored per boot ID so that the next boot does not
 overwrite the final pre-crash state from the failed boot.
+
+Snapshots include AC-adapter and battery sysfs state, temperatures, and fan
+speeds. An unreadable power-supply value is recorded as `<unreadable>` rather
+than aborting the snapshot.
+
+## Capture a live black screen
+
+If the display fails but SSH remains available, capture state before forcing a
+power cycle:
+
+```bash
+sudo systemctl start crash-monitor-snapshot.service
+sudo sync
+sudo systemctl reboot
+```
+
+If the remote reboot succeeds, the event was not a complete platform lockup.
+If SSH is unavailable, record whether the power LED, fans, audio, Caps Lock
+indicator, and network ping still respond before holding the power button.
 
 ## Identify the failed/previous boot
 
@@ -148,10 +167,30 @@ Focused kernel search:
 ```bash
 journalctl -b -1 -k --no-pager |
 grep -Ei \
-'amdgpu|drm|gpu|ring|kiq|kcq|uvd|sdma|fence|timeout|reset|fault|hang|lockup|watchdog|iommu|amd.?iommu|amd-vi|ivrs|pcie|aer|nvme|mce|ras|BUG:|WARNING:|Call Trace|panic|oops'
+  'amdgpu|drm|gpu|ring|kiq|kcq|uvd|sdma|fence|timeout|reset|fault|hang|lockup|watchdog|iommu|amd.?iommu|amd-vi|ivrs|pcie|aer|nvme|battery|ac adapter|power supply|mce|ras|BUG:|WARNING:|Call Trace|panic|oops'
 ```
 
 ## Suspend-debug procedure
+
+Suspend testing is currently paused. Do not run the procedure below until a new
+experiment has been selected.
+
+The previous experiments are no longer active configuration:
+
+```text
+amdgpu.pg_mask=0
+amdgpu.dpm=0
+```
+
+After returning to the baseline generation, verify that neither parameter is
+present on the kernel command line:
+
+```bash
+cat /proc/cmdline
+```
+
+Kernel parameters require a reboot; activating a NixOS configuration without
+rebooting does not change the already loaded AMDGPU module.
 
 Check supported sleep and PM-test modes:
 
@@ -163,11 +202,12 @@ cat /sys/power/pm_test
 For the current `s2idle` + device-callback test:
 
 ```bash
-echo s2idle | sudo tee /sys/power/mem_sleep
-echo devices | sudo tee /sys/power/pm_test
-
-echo 1 | sudo tee /sys/power/pm_print_times
-echo 1 | sudo tee /sys/power/pm_debug_messages
+sudo sh -c '
+  printf "%s\n" s2idle > /sys/power/mem_sleep
+  printf "%s\n" devices > /sys/power/pm_test
+  printf "%s\n" 1 > /sys/power/pm_print_times
+  printf "%s\n" 1 > /sys/power/pm_debug_messages
+'
 ```
 
 Verify:
@@ -198,13 +238,18 @@ With `pm_test=devices`, the system should freeze processes, suspend devices,
 wait roughly five seconds, resume devices, and thaw processes without entering
 the final hardware sleep state.
 
-Do not immediately press the power button when the display goes black. Give
-the PM test time to complete and return automatically.
+Run this test with remote SSH access available if possible. Allow at least two
+minutes for it to return because a captured AMDGPU callback blocked for about
+57 seconds.
+
+Do not press the power button while waiting. During the previous test, a power
+button press queued a second suspend after the first operation returned with
+the GPU already wedged.
 
 After a successful test, restore normal suspend operation:
 
 ```bash
-echo none | sudo tee /sys/power/pm_test
+sudo sh -c 'printf "%s\n" none > /sys/power/pm_test'
 ```
 
 Keep the PM timing/debug switches enabled while active suspend debugging
@@ -213,8 +258,10 @@ continues.
 When finished:
 
 ```bash
-echo 0 | sudo tee /sys/power/pm_print_times
-echo 0 | sudo tee /sys/power/pm_debug_messages
+sudo sh -c '
+  printf "%s\n" 0 > /sys/power/pm_print_times
+  printf "%s\n" 0 > /sys/power/pm_debug_messages
+'
 ```
 
 If the machine hangs and must be rebooted, the manually configured PM sysfs

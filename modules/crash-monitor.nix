@@ -14,6 +14,7 @@ let
     gnused
     gawk
     findutils
+    lm_sensors
   ];
 
   # --------------------------------------------------------------------------
@@ -50,6 +51,44 @@ let
       echo "KERNEL COMMAND LINE"
       echo "============================================================"
       cat /proc/cmdline
+      echo
+
+      echo "============================================================"
+      echo "POWER SUPPLY STATE"
+      echo "============================================================"
+      for supply in /sys/class/power_supply/*; do
+        [ -e "$supply" ] || continue
+
+        echo "--- $supply ---"
+
+        for attr in \
+          type \
+          online \
+          present \
+          status \
+          capacity \
+          manufacturer \
+          model_name \
+          technology \
+          voltage_min_design \
+          voltage_now \
+          current_now \
+          power_now \
+          energy_now \
+          charge_now
+        do
+          f="$supply/$attr"
+          [ -e "$f" ] || continue
+          printf '%-24s ' "$attr:"
+          cat "$f" 2>/dev/null || echo "<unreadable>"
+        done
+      done
+      echo
+
+      echo "============================================================"
+      echo "TEMPERATURES / FANS"
+      echo "============================================================"
+      sensors 2>&1 || true
       echo
 
       echo "============================================================"
@@ -241,7 +280,7 @@ let
       -o short-precise \
       --no-pager \
       | grep -Ei \
-        'amdgpu|drm|gpu|ring|kiq|kcq|fence|timeout|reset|fault|hang|lockup|watchdog|iommu|amd.?iommu|amd-vi|ivrs|pcie|aer|nvme|mce|ras|BUG:|WARNING:|Call Trace|panic|oops' \
+        'amdgpu|drm|gpu|ring|kiq|kcq|fence|timeout|reset|fault|hang|lockup|watchdog|iommu|amd.?iommu|amd-vi|ivrs|pcie|aer|nvme|battery|ac adapter|power supply|mce|ras|BUG:|WARNING:|Call Trace|panic|oops' \
       > "$base-focus.log" || true
 
     # Boot/shutdown history.

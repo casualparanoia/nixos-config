@@ -11,7 +11,7 @@ tags:
   - diagnostics
 type: investigation
 status: investigating
-date: 2026-08-15
+date: 2026-08-16
 source-files:
   - modules/crash-monitor.nix
   - modules/hardware-tuning.nix
@@ -235,6 +235,136 @@ A per-boot state snapshot roughly 20 seconds before that test showed:
 The D-state observation is interesting but not yet evidence of a persistent
 hang because the snapshot does not show how long the task had been waiting.
 
+### Device-callback PM test
+
+A subsequent test used `s2idle` with `pm_test=devices`. This test does not
+enter the final hardware sleep state, but it does exercise device suspend and
+resume callbacks.
+
+The Polaris GPU failed during both phases. Suspend reported:
+
+```text
+Failed to force to switch arbf0
+[disable_dpm_tasks] Failed to disable DPM
+suspend of IP block <powerplay> failed -22
+```
+
+The automatic device resume then reported:
+
+```text
+atombios stuck in loop for more than 20secs
+amdgpu asic init failed
+SMU load firmware failed
+amdgpu_device_ip_resume failed (-22)
+PM: failed to resume async: error -22
+```
+
+The AMDGPU resume callback took approximately 56.7 seconds. A state snapshot
+afterward found the GPU PCI configuration space returning an unknown header
+type of `7f`, AMDGPU power/debug interfaces returning `EBUSY`, and an invalid
+UVD fence value.
+
+The NVMe device callbacks completed successfully and no NVMe, block-I/O,
+filesystem, or active AER fault was logged during the test. The later failure
+of firmware to detect the SSD until an AC power cycle remains relevant as a
+platform power-state symptom, but the evidence does not identify NVMe as the
+initiator of this suspend failure.
+
+This test establishes that the suspend black screen can be triggered entirely
+within device power-management callbacks. It does not require entering real
+s2idle, and it strengthens Polaris PowerPlay/SMU/UVD power management as the
+primary suspend suspect.
+
+### Power-gating-disabled device-callback test
+
+The device-callback test was repeated with `amdgpu.pg_mask=0` effective. This
+changed the suspend phase: AMDGPU suspended successfully in approximately 115
+milliseconds instead of reporting the earlier PowerPlay suspend failure.
+
+It did not fix resume. The same ATOMBIOS and SMU initialization path failed,
+and the AMDGPU resume callback returned `-22` after approximately 53.2 seconds.
+The failed GPU then caused:
+
+- repeated SDMA, GFX, and KIQ ring timeouts;
+- unsuccessful GPU recovery attempts;
+- ATOMBIOS and display-link command timeouts;
+- kernel warnings in `amdgpu_irq_put`;
+- DRM, TTM, compositor, and `systemd-logind` tasks blocked in D state.
+
+The `systemd-logind` stack was blocked in
+`amdgpu_dpm_display_configuration_change`. A later `sudo sync` invocation
+recorded the sudo command but never opened its PAM session while logind was
+wedged. Therefore that command does not establish an NVMe or filesystem sync
+failure; it likely never reached `sync`.
+
+The NVMe callbacks again completed successfully, in approximately 17
+milliseconds for suspend and 50 milliseconds for resume, with no NVMe,
+block-I/O, or filesystem error. Disabling AMDGPU power gating is therefore
+insufficient, although its effect on the suspend phase further localizes the
+problem to broader Polaris power-management and resume behavior.
+
+### DPM-disabled runtime failure
+
+The next boot selected `amdgpu.dpm=0`, but the machine failed spontaneously
+before the planned device-callback test was run. There was no suspend request
+on that boot.
+
+Disabling DPM also removed the AMDGPU hwmon sensor required by NBFC. NBFC never
+started and retried 147 times while waiting for that sensor. The resulting fan
+behavior was therefore uncontrolled by NBFC and included high fan speed.
+
+The boot ended abruptly about 10 seconds after a successful periodic state
+snapshot. At that point the load and pressure metrics were low, memory was
+available, no task was in D state, every AMDGPU ring's emitted fence matched its
+last signaled fence, and the GPU and NVMe PCIe configuration spaces remained
+readable. There were no thermal-event or machine-check interrupts. `rasdaemon`
+later reported no memory, PCIe AER, disk, or MCE errors.
+
+The persisted journal contains no panic, watchdog reset, AMDGPU timeout, NVMe
+error, filesystem error, thermal-critical event, or orderly shutdown sequence
+at the end. The NBFC retry loop consumed only approximately 2.4 CPU seconds per
+38-second attempt and did not create system pressure, making it an unlikely
+direct crash mechanism. This does not prove that disabling DPM caused the
+spontaneous failure, but it makes `amdgpu.dpm=0` operationally unsuitable on
+this system and it cannot be treated as a completed suspend test.
+
+### Power-delivery observations
+
+The laptop is intentionally operating without an installed battery, as already
+recorded in the hardware context above. There is therefore no battery buffer
+for a short AC-adapter, DC-jack, or motherboard input-power transient.
+The firmware nevertheless exposes `BAT0` as present. Its voltage, energy, and
+power attributes are unreadable, it reports `Not charging`, and an earlier
+`upowerd` instance reported that no valid battery voltage was available. This
+may be only stale firmware/EC behavior for the absent pack; it is not proof of
+a battery-controller fault.
+
+The installed adapter is correctly rated at 19.5 V and 16.9 A, approximately
+330 W. ASUS documentation lists 280 W and 330 W supplies depending on the
+GL702ZC SKU, while a reviewed Ryzen 7 1700/RX 580 configuration shipped with a
+330 W supply. ASUS documents simultaneous adapter and battery delivery under
+heavy load for some gaming notebooks, but no model-specific source found so
+far establishes that the GL702ZC requires a battery for idle operation.
+
+The observed runtime failures are not uniform. They include a display-only
+black screen where SSH can remain available, whole-system freezes requiring a
+power-button hold, and occasional automatic reboots. Instant loss of all power
+has not been observed. Therefore an abrupt journal end does not by itself prove
+AC loss: it may be the result of a hard kernel/platform hang followed by a
+manual power cycle. This weakens a simple adapter-dropout explanation, although
+GPU or motherboard power-rail faults remain possible.
+
+The model's ArchWiki page independently reports full-speed fans and an
+unresponsive system after long idle, with no established fix and possible
+motherboard power-control failure. It also reports first-generation Ryzen MCE
+failures, but no MCE has been captured on this machine and `rasdaemon` currently
+reports no MCE records. The exact idle/fan symptom is therefore corroborated by
+an owner report, while its proposed hardware cause remains unproven.
+
+These runtime failures remain separate from the reproducible Polaris
+suspend/resume defect. The next isolation should distinguish display/GPU loss
+from a whole-platform hang before changing another kernel parameter.
+
 ## IOMMU observations
 
 AMD-Vi / IOMMU messages have appeared during boot and around resume.
@@ -282,16 +412,30 @@ downstream symptom in that event rather than the initiating failure.
 
 ## Current suspend diagnostic
 
-The current experiment uses the kernel PM test facility.
+Active suspend testing is paused. The final DPM-disabled snapshot has been
+inspected, the baseline generation is active again, and both experimental
+parameters have been removed:
+
+```text
+amdgpu.pg_mask=0
+amdgpu.dpm=0
+```
+
+Do not run another suspend test while hardware power delivery is being
+isolated. A later suspend experiment must still change only one variable.
+
+The commands below document the device-callback procedure for a later test;
+they are not currently an instruction to run it.
 
 Runtime configuration:
 
 ```bash
-echo s2idle | sudo tee /sys/power/mem_sleep
-echo devices | sudo tee /sys/power/pm_test
-
-echo 1 | sudo tee /sys/power/pm_print_times
-echo 1 | sudo tee /sys/power/pm_debug_messages
+sudo sh -c '
+  printf "%s\n" s2idle > /sys/power/mem_sleep
+  printf "%s\n" devices > /sys/power/pm_test
+  printf "%s\n" 1 > /sys/power/pm_print_times
+  printf "%s\n" 1 > /sys/power/pm_debug_messages
+'
 ```
 
 Expected state:
@@ -317,15 +461,17 @@ systemctl suspend
 If the test succeeds, restore normal suspend operation:
 
 ```bash
-echo none | sudo tee /sys/power/pm_test
+sudo sh -c 'printf "%s\n" none > /sys/power/pm_test'
 ```
 
 The PM timing/debug switches may remain enabled while suspend debugging
 continues. Disable them afterward with:
 
 ```bash
-echo 0 | sudo tee /sys/power/pm_print_times
-echo 0 | sudo tee /sys/power/pm_debug_messages
+sudo sh -c '
+  printf "%s\n" 0 > /sys/power/pm_print_times
+  printf "%s\n" 0 > /sys/power/pm_debug_messages
+'
 ```
 
 These sysfs settings are runtime state and normally reset on reboot unless
@@ -356,22 +502,8 @@ Do not progress to `platform`, `processors`, or `core` until the result of the
 
 Do not enable these simultaneously.
 
-Possible future experiments, depending on evidence:
-
-```text
-amdgpu.pg_mask=0
-```
-
-This disables AMDGPU power gating and is relevant because historical pstore
-evidence includes `smu7_powergate_uvd`.
-
-A broader later experiment would be:
-
-```text
-amdgpu.dpm=0
-```
-
-which disables dynamic power management and is therefore more invasive.
+Do not select another kernel workaround while hardware power delivery is being
+isolated.
 
 Other possible diagnostic mechanisms include:
 
