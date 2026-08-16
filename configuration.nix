@@ -10,6 +10,7 @@
       ./hardware-configuration.nix
 
       ./modules/hardware-tuning.nix
+      ./modules/logitech-mouse.nix
       ./modules/niri.nix
       ./modules/nirinit.nix
       ./modules/desktop.nix

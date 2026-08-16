@@ -64,6 +64,7 @@ Deferred or undecided:
 - [[Antigravity]]
 - [[Development Tooling]]
 - [[Flatpak]] — declarative Flathub inventory and application policy.
+- [[Logitech Mouse Tools]] — OpenLogi as the primary manager and Mouser as a manual fallback.
 - [[Nirinit]] — Niri session persistence and restoration.
 - [[Foreign Binary Packaging]]
 - [[runbooks/binary-packaging|Binary Packaging Runbook]]

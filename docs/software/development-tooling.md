@@ -21,7 +21,7 @@ source-files:
 
 | Area | Tools |
 |---|---|
-| Build and debug | GCC, `clang-tools`, CMake, Make, Ninja, `pkg-config`, GDB, LLDB, Valgrind |
+| Build, debug, and packaging | GCC, `clang-tools`, CMake, Make, Ninja, `pkg-config`, GDB, LLDB, Valgrind, `dpkg` |
 | Nix | `nixd`, `nixfmt`, Statix, deadnix |
 | Rust | Cargo, Rust compiler, rustfmt, Clippy, rust-analyzer |
 | C# / .NET | .NET 10 LTS SDK, `csharp-ls`, `netcoredbg` |
@@ -34,6 +34,8 @@ source-files:
 | JSON | VS Code JSON language server, Prettier; `jq` remains in the general package module |
 
 `clang-tools` supplies both `clangd` and `clang-format`. `vscode-langservers-extracted` supplies `vscode-json-language-server`.
+
+`dpkg-deb` supports Debian-package inspection in `scripts/nix-binary-inspect`; it is tooling for local package maintenance, not a second system package manager.
 
 ## Python baseline
 

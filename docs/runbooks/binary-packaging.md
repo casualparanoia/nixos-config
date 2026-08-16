@@ -8,7 +8,7 @@ tags:
   - elf
 type: runbook
 status: active
-date: 2026-08-14
+date: 2026-08-16
 source-files:
   - scripts/nix-binary-inspect
 ---
@@ -27,12 +27,15 @@ The script currently:
 
 1. prefetches the archive through Nix;
 2. prints a `fetchurl`-compatible hash;
-3. extracts tar/zip archives;
-4. discovers ELF files;
-5. reads their `DT_NEEDED` dependencies;
-6. filters libraries already bundled by the application;
-7. can query `nix-locate` for providers;
-8. can verify candidates against the package set of this flake.
+3. extracts tar/zip archives and Debian packages;
+4. prints Debian package metadata when applicable;
+5. discovers ELF files;
+6. reads their `DT_NEEDED` dependencies;
+7. filters libraries already bundled by the application;
+8. can query `nix-locate` for providers;
+9. can verify candidates against the package set of this flake.
+
+Debian inspection requires `dpkg-deb`, supplied by the Nixpkgs `dpkg` package in the development baseline.
 
 Useful options include:
 
@@ -55,3 +58,4 @@ After creating a derivation:
 
 - [[Foreign Binary Packaging]]
 - [[AB Download Manager]]
+- [[Logitech Mouse Tools]]

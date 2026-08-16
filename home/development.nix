@@ -12,6 +12,7 @@
     gdb
     lldb
     valgrind
+    dpkg
 
     # Nix
     nixd

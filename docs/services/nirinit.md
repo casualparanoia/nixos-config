@@ -37,21 +37,39 @@ $XDG_DATA_HOME/nirinit/session.json
 
 This is normally `~/.local/share/nirinit/session.json`. The service snapshots open windows every five minutes and performs a final save when it stops cleanly.
 
+Inspect the current snapshot directly:
+
+```bash
+jq -r '.[] | [.app_id, .launch_command, .workspace_idx, .workspace_output] | @tsv' \
+  "${XDG_DATA_HOME:-$HOME/.local/share}/nirinit/session.json"
+```
+
+The user journal reports the previous restore attempt and any app IDs that failed to appear:
+
+```bash
+journalctl --user -u nirinit.service -b
+```
+
 At startup, nirinit reads the saved session, launches each recorded command, waits for a window with the saved `app_id`, and then restores its output, workspace, width, and height. It does not preserve exact tiling order, floating/fullscreen state, tabs, titles, or focus. Multiple windows sharing one app ID may be matched imperfectly.
 
 If no state file exists, nirinit records the current session rather than launching applications immediately.
 
-## Flatpak launch mapping
+## Launch mappings
 
 Nirinit normally treats a window's `app_id` as its executable name. That does not work for Flatpak applications, and nirinit accepts only one executable token rather than a shell command with arguments.
 
-NormCap therefore has this mapping:
+Mappings currently correct three IDs that are not directly executable:
 
-```text
-com.github.dynobo.normcap -> /run/current-system/sw/bin/nirinit-launch-normcap
-```
+| Niri app ID | Launch command | Reason |
+|---|---|---|
+| `Alacritty` | `/run/current-system/sw/bin/alacritty` | app ID capitalization differs from the executable |
+| `ai.opencode.desktop` | `/etc/profiles/per-user/casua/bin/opencode-desktop` | desktop app ID differs from the Home Manager executable |
+| `com.github.dynobo.normcap` | `/run/current-system/sw/bin/nirinit-launch-normcap` | Flatpak needs a one-token wrapper command |
+| `org.openlogi.openlogi` | `/run/current-system/sw/bin/openlogi-gui` | OpenLogi's desktop ID differs from its GUI executable |
 
 The wrapper runs `flatpak run --system com.github.dynobo.normcap`. The same Flathub application and desktop ID is used by the declarative inventory, Niri shortcut, and floating-window rule. After the first installation, confirm the runtime ID with `niri msg windows`; if NormCap reports a different value, update the nirinit mapping and Niri rule together.
+
+Mappings are written into the snapshot during a periodic save. After changing them, allow the running service to complete its next five-minute save before relying on the new commands at login.
 
 No mappings are declared for LibreOffice, JASP, jamovi, or GIMP yet. Their actual Niri runtime app IDs should first be observed with `niri msg windows`; LibreOffice can expose component-specific IDs, and guessing mappings could restore the wrong command. Until a verified mapping is added and a new snapshot is saved, nirinit cannot reliably relaunch those Flatpaks.
 

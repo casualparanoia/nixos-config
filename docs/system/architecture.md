@@ -13,6 +13,7 @@ source-files:
   - configuration.nix
   - home/home.nix
   - modules/flatpak.nix
+  - modules/logitech-mouse.nix
   - modules/nirinit.nix
 ---
 
@@ -45,6 +46,7 @@ See [[decisions/0002-stable-plus-unstable|ADR 0002 - Stable Plus Unstable Packag
 `configuration.nix` imports machine/system modules including:
 
 - hardware tuning and workarounds;
+- [[Logitech Mouse Tools]] and their device-access rules;
 - Niri;
 - [[Nirinit]] session persistence;
 - desktop/session integration;
@@ -66,7 +68,7 @@ Reusable programming tools live in `home/development.nix`; project dependencies 
 
 ## Local packages
 
-Packages unavailable or unsuitable in Nixpkgs can live under `packages/` and be imported with `pkgs.callPackage`. The current example is [[AB Download Manager]].
+Packages unavailable or unsuitable in Nixpkgs can live under `packages/` and be imported with `pkgs.callPackage`. Current examples are [[AB Download Manager]] and the prebuilt OpenLogi package documented in [[Logitech Mouse Tools]].
 
 ## Reproducibility
 
