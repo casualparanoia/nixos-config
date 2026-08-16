@@ -8,14 +8,14 @@ tags:
   - nixos
 type: runbook
 status: active
-date: 2026-08-14
+date: 2026-08-16
 ---
 
 # Quartz Setup
 
 Quartz is not the documentation database. It is a Node-based static-site generator and local development server that renders the Markdown under `docs/` as a searchable wiki.
 
-## Intended topology
+## Current topology
 
 Keep Quartz outside the configuration repository:
 
@@ -104,4 +104,4 @@ A local Quartz preview does not require publishing the knowledge base. If the re
 ## Related
 
 - [[Documentation System]]
-- [[ADR 0001 - Documentation Architecture]]
+- [[decisions/0001-documentation-architecture|ADR 0001 - Documentation Architecture]]

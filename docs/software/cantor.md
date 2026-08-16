@@ -18,7 +18,7 @@ source-files:
 
 Cantor is a worksheet/notebook frontend for external mathematical engines rather than a replacement for those engines.
 
-Potential backends include systems such as [[Octave]], [[R]], [[Julia]], and [[SageMath]], but packaging determines whether the frontend can actually discover and execute them.
+Potential backends include systems such as [[Octave]], [[R]], [[Julia]], and [[software/sage|SageMath]], but packaging determines whether the frontend can actually discover and execute them.
 
 ## Current repository state
 
@@ -44,4 +44,4 @@ The Flatpak is more isolated and should **not** be assumed to see host executabl
 - [[Octave]]
 - [[R]]
 - [[Julia]]
-- [[SageMath]]
+- [[software/sage|SageMath]]

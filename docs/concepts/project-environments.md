@@ -8,7 +8,7 @@ tags:
   - science
 type: concept
 status: accepted
-date: 2026-08-15
+date: 2026-08-16
 aliases:
   - Scientific Project Environments
 ---
@@ -43,9 +43,11 @@ Examples:
 - [[Python Scientific Environments]];
 - project compilers and build tools.
 
+Ordinary Python projects use the global Nix-managed interpreter with `uv` and do not require a Nix flake. Add a `devShell` when native libraries, special compilers, accelerators, external system packages, or stronger Nix-level reproducibility are required; `uv` can continue to manage the Python dependency graph inside that shell.
+
 [[Julia]] may primarily use Julia's own project/manifest mechanism while Nix supplies the runtime and external host dependencies.
 
 ## Related
 
 - [[Package Source Policy]]
-- [[ADR 0003 - Octave Package Management]]
+- [[decisions/0003-octave-package-management|ADR 0003 - Octave Package Management]]

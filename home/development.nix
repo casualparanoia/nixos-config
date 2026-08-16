@@ -31,6 +31,12 @@
     csharp-ls
     netcoredbg
 
+    # Python
+    python3
+    uv
+    ruff
+    ty
+
     # Shell
     bash-language-server
     shellcheck

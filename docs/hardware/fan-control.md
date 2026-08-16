@@ -722,4 +722,4 @@ The current control mechanism is functional, but the chosen automatic temperatur
 
 - [[Laptop]]
 - [[Crash Investigation]]
-- [[AMD Backlight Workaround]]
+- [[hardware/backlight|AMD Backlight Workaround]]

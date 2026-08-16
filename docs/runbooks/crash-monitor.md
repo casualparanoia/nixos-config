@@ -247,5 +247,5 @@ full-journal capture.
 
 ## Related
 
-- [[Crash Monitor]]
+- [[services/crash-monitor|Crash Monitor]]
 - [[Crash Investigation]]

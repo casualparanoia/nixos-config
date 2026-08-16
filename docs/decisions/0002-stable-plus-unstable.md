@@ -36,5 +36,5 @@ A current example is [[openEMS]] being selected from unstable alongside unstable
 
 ## Related
 
-- [[System Architecture]]
+- [[system/architecture|System Architecture]]
 - [[Package Source Policy]]

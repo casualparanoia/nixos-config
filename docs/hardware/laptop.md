@@ -15,10 +15,10 @@ This page is the anchor for configuration that should not be assumed portable to
 
 ## Machine-specific configuration
 
-- [[AMD Backlight Workaround]]
+- [[hardware/backlight|AMD Backlight Workaround]]
 - [[Fan Control]]
 - [[Crash Investigation]]
-- [[Crash Monitor]]
+- [[services/crash-monitor|Crash Monitor]]
 
 ## Current kernel/hardware tuning represented in source
 

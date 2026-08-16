@@ -19,6 +19,11 @@
       url = "github:jacopone/antigravity-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nirinit = {
+      url = "github:amaanq/nirinit/9ae6f110c652aab8b2ce28dd3696829e8fa1b628"; # v0.2.2
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-flatpak.url = "github:gmodena/nix-flatpak/440818969ac2cbd77bfe025e884d0aa528991374"; # v0.7.0
     vicinae.url = "github:vicinaehq/vicinae";
 
     nix-index-database = {
@@ -35,6 +40,8 @@
       home-manager,
       helium,
       antigravity-nix,
+      nirinit,
+      nix-flatpak,
       vicinae,
       nix-index-database,
       ...
@@ -58,6 +65,8 @@
         modules = [
           ./configuration.nix
 
+          nirinit.nixosModules.nirinit
+          nix-flatpak.nixosModules.nix-flatpak
           nix-index-database.nixosModules.default
 
           home-manager.nixosModules.home-manager

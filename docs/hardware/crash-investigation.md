@@ -50,7 +50,7 @@ cold AC power cycle.
 
 ## Crash-monitor infrastructure
 
-The primary evidence collection mechanism is [[Crash Monitor]].
+The primary evidence collection mechanism is [[services/crash-monitor|Crash Monitor]].
 
 It preserves:
 
@@ -394,7 +394,7 @@ Other possible diagnostic mechanisms include:
 
 ## Related
 
-- [[Crash Monitor]]
-- [[Crash Monitor Runbook]]
+- [[services/crash-monitor|Crash Monitor]]
+- [[runbooks/crash-monitor|Crash Monitor Runbook]]
 - [[Fan Control]]
 - [[Laptop]]

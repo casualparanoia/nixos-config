@@ -34,5 +34,5 @@ When source builds are impractical but upstream provides a Linux binary archive,
 ## Related
 
 - [[AB Download Manager]]
-- [[Binary Packaging Runbook]]
+- [[runbooks/binary-packaging|Binary Packaging Runbook]]
 - [[Scilab]]

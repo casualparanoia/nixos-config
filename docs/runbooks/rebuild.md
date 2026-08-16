@@ -52,5 +52,5 @@ sudo nixos-rebuild switch --flake .#nixos
 
 ## Related
 
-- [[System Architecture]]
-- [[ADR 0002 - Stable Plus Unstable Package Sets]]
+- [[system/architecture|System Architecture]]
+- [[decisions/0002-stable-plus-unstable|ADR 0002 - Stable Plus Unstable Package Sets]]

@@ -9,7 +9,7 @@ tags:
   - communications
 type: software
 status: accepted
-date: 2026-08-14
+date: 2026-08-16
 source-files:
   - home/engsci.nix
 ---
@@ -24,7 +24,7 @@ pkgs.gnuradio
 
 GNU Radio is installed from stable Nixpkgs as a persistent DSP/SDR application and framework.
 
-Its internal Python dependency environment is an implementation detail of the packaged application and does not determine the future strategy for user-created Python projects.
+Its internal Python dependency environment is an implementation detail of the packaged application and remains separate from the `uv`-based policy for user-created Python projects.
 
 ## Related
 

@@ -46,4 +46,4 @@ Binary repackaging can keep working for months and then fail after an upstream r
 
 ## Updating
 
-See [[Binary Packaging Runbook]] and [[Foreign Binary Packaging]].
+See [[runbooks/binary-packaging|Binary Packaging Runbook]] and [[Foreign Binary Packaging]].

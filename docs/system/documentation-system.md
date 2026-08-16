@@ -8,7 +8,7 @@ tags:
   - docs-as-code
 type: architecture
 status: accepted
-date: 2026-08-14
+date: 2026-08-16
 source-files:
   - docs/
 ---
@@ -17,7 +17,7 @@ source-files:
 
 The configuration uses a **docs-as-code** knowledge base. Markdown in `docs/` is canonical and committed in the same Git history as the Nix code it explains.
 
-See [[ADR 0001 - Documentation Architecture]].
+See [[decisions/0001-documentation-architecture|ADR 0001 - Documentation Architecture]].
 
 ## Design goals
 
@@ -45,7 +45,7 @@ Quartz is a renderer/indexer, not the database. Obsidian may later be used as an
 
 ## Quartz integration
 
-Quartz 5 expects its content under its own `content/` directory. The intended deployment is to keep Quartz as a separate checkout and initialize it with a **symlink content strategy** pointing to this repository's `docs/` directory.
+Quartz 5 expects its content under its own `content/` directory. The active deployment keeps Quartz as a separate checkout and uses a **symlink content strategy** pointing to this repository's `docs/` directory.
 
 Conceptually:
 
@@ -69,6 +69,8 @@ Any Markdown-capable editor is valid. Kate and Helix are sufficient. Obsidian is
 ## Linking
 
 Use wiki links for conceptual relationships between documentation pages. Use ordinary Markdown links for external resources.
+
+Quartz resolves wiki links from file slugs, not frontmatter titles. A display title that differs from the filename, or a filename shared by more than one folder, must use an explicit target such as `[[system/architecture|System Architecture]]`.
 
 Prefer explicit links in prose over adding a generic `related:` field to every page. The link graph should represent meaningful relationships, not metadata noise.
 

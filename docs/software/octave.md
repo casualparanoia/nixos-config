@@ -31,7 +31,7 @@ The current policy is therefore **not** to place a large Forge set in global Hom
 
 If Forge packages such as control/signal/communications/statistics are needed, create a separate project or named environment.
 
-See [[ADR 0003 - Octave Package Management]].
+See [[decisions/0003-octave-package-management|ADR 0003 - Octave Package Management]].
 
 ## Related
 

@@ -8,7 +8,7 @@ tags:
   - formatting
 type: software
 status: active
-date: 2026-08-15
+date: 2026-08-16
 source-files:
   - home/development.nix
 ---
@@ -25,6 +25,7 @@ source-files:
 | Nix | `nixd`, `nixfmt`, Statix, deadnix |
 | Rust | Cargo, Rust compiler, rustfmt, Clippy, rust-analyzer |
 | C# / .NET | .NET 10 LTS SDK, `csharp-ls`, `netcoredbg` |
+| Python | Python 3, `uv`, Ruff, `ty` |
 | Shell | `bash-language-server`, ShellCheck, `shfmt` |
 | Markdown | Marksman, `markdownlint-cli2`, Prettier |
 | YAML | `yaml-language-server`, yamllint, Prettier |
@@ -34,9 +35,11 @@ source-files:
 
 `clang-tools` supplies both `clangd` and `clang-format`. `vscode-langservers-extracted` supplies `vscode-json-language-server`.
 
-## Python boundary
+## Python baseline
 
-No Python runtime, package manager, language server, formatter, or global Python package set is added here. The choice between `uv`, Nix `devShell`s, or a hybrid remains deferred in [[Python Scientific Environments]].
+Nix supplies the Python interpreter, `uv`, Ruff, and `ty`. Ruff covers formatting, linting, and editor diagnostics; `ty` provides type analysis. Current Helix defaults discover both language servers from `PATH`, so no editor-specific override is needed.
+
+Project dependencies stay in `uv` environments, with Nix `devShell`s reserved for native/system dependencies and stronger Nix-level reproducibility. See [[Python Scientific Environments]].
 
 ## Repository formatting
 

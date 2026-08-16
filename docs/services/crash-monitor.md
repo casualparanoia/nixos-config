@@ -186,7 +186,7 @@ pm_debug_messages = 1
 The `devices` test exercises process freezing plus device suspend/resume
 without entering the final hardware sleep state.
 
-See [[Crash Monitor Runbook]] for the exact procedure.
+See [[runbooks/crash-monitor|Crash Monitor Runbook]] for the exact procedure.
 
 ## Known limitations
 
@@ -222,4 +222,4 @@ while retaining the complete journal separately.
 ## Related
 
 - [[Crash Investigation]]
-- [[Crash Monitor Runbook]]
+- [[runbooks/crash-monitor|Crash Monitor Runbook]]

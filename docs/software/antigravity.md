@@ -32,4 +32,4 @@ Antigravity is proprietary software, so the existing unfree-package allowance re
 
 - [[Development Tooling]]
 - [[Package Source Policy]]
-- [[Rebuild Runbook]]
+- [[runbooks/rebuild|Rebuild Runbook]]
