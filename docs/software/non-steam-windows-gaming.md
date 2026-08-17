@@ -152,6 +152,7 @@ That is intentionally absent now. Raw Wine is appropriate for compatibility test
 
 - [[system/gaming|Gaming Architecture]]
 - [[runbooks/non-steam-game|Run a Non-Steam Game]]
+- [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]]
 - [[runbooks/gaming-diagnostics|Gaming Diagnostics]]
 - [[software/gbe-fork|gbe_fork]]
 - [[Flatpak]]

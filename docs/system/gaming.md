@@ -145,6 +145,7 @@ SDL3 uses `SDL_VIDEO_DRIVER` instead. Games that mishandle fullscreen, pointer g
 - [[software/native-linux-games|Native Linux Games]]
 - [[software/gbe-fork|gbe_fork]]
 - [[runbooks/non-steam-game|Run a Non-Steam Game]]
+- [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]]
 - [[runbooks/gaming-diagnostics|Gaming Diagnostics]]
 - [[Flatpak]]
 - [[Package Source Policy]]

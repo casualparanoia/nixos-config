@@ -32,6 +32,7 @@ file "/path/to/download"
 | Windows application needing a named isolated environment | Bottles |
 | Native Linux ELF binary | Nix package or `steam-run` |
 | Native game already in Nixpkgs | Nix package |
+| Authorized game directory with replacement DLL/`.so` files | Base runtime above plus [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]] |
 
 One manager owns the game and prefix. Do not test the same writable prefix from several managers.
 
@@ -46,6 +47,16 @@ Use a user-owned game directory and a separate prefix when practical. The follow
 ```
 
 Never run an installer as root. Never install mutable game data into `/nix/store`.
+
+## Already-prepared per-game layer
+
+An authorized game directory that already contains or needs game-local DLL/`.so` replacements uses the same runtime selection as an unmodified game:
+
+- Windows executable: UMU for a direct setup or Lutris for a managed/complex setup.
+- Native Linux executable: direct Nix-compatible launch, `steam-run`, or a title-specific package.
+- `gbe_fork`: the appropriate runtime plus the per-game API library and `steam_settings/`.
+
+Do not copy the layer globally or into a runner installation. Use [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]] to preserve originals, inspect architecture, control DLL/SO loading, collect logs, and roll back cleanly.
 
 ## Standalone Windows game with UMU
 
@@ -175,4 +186,5 @@ Identify whether saves live in the game directory, prefix, launcher-specific sta
 - [[software/non-steam-windows-gaming|Non-Steam Windows Gaming]]
 - [[software/native-linux-games|Native Linux Games]]
 - [[software/gbe-fork|gbe_fork]]
+- [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]]
 - [[runbooks/gaming-diagnostics|Gaming Diagnostics]]

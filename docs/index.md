@@ -41,6 +41,7 @@ This knowledge base records not only **what** the configuration does, but also *
 - [[software/native-linux-games|Native Linux Games]] — Nix packages, Steam Linux titles, and `steam-run`.
 - [[software/gbe-fork|gbe_fork]] — authorized per-game Steamworks interoperability testing.
 - [[runbooks/non-steam-game|Run a Non-Steam Game]]
+- [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]] — isolated Windows DLL and native Linux shared-library workflows.
 - [[runbooks/gaming-diagnostics|Gaming Diagnostics]]
 
 ## Scientific / engineering software

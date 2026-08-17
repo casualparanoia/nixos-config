@@ -19,6 +19,19 @@ source-files:
 
 Remove unrelated launch options and reproduce the smallest failure first. Record the game, distribution source, selected runner/version, whether it is native or Windows, and whether the failure is a game exit, compositor problem, GPU reset, or whole-machine freeze.
 
+## Verified baseline
+
+Post-activation checks completed on 2026-08-17:
+
+- `gamemoded -t` passed all basic, dual-client, reaper, supervisor, CPU-governor, script, GPU, renice, and I/O-priority tests;
+- the login session includes the `gamemode` supplementary group;
+- 64-bit and genuine i686 `vulkaninfo --summary` both select `AMD Radeon RX 580 Series (RADV POLARIS10)` with Mesa 26.1.5;
+- 64-bit and genuine i686 `glxinfo -B` both report direct, accelerated RadeonSI/Polaris OpenGL 4.6 through Xwayland;
+- `vkcube` selects RADV using the native Wayland WSI;
+- `mangohud vkcube` and `mangohud gamemoderun vkcube` both launch successfully.
+
+The DZN ICD warning is non-fatal: Mesa's Direct3D 12 Vulkan driver declines initialization and the loader skips it. Enumeration of llvmpipe is also normal as long as the selected hardware device is RADV. Testing a real game remains outstanding.
+
 ## Effective configuration
 
 ```bash

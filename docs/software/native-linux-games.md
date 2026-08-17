@@ -106,13 +106,14 @@ SDL3 uses `SDL_VIDEO_DRIVER`. Use a per-game override only after identifying the
 
 ## `gbe_fork` layering
 
-For authorized native Steamworks interoperability testing, `libsteam_api.so` and `steam_settings/` belong in a writable test copy of the game. The native game still needs a working packaged or `steam-run` runtime underneath; `gbe_fork` does not supply normal Linux libraries. See [[software/gbe-fork|gbe_fork]].
+For authorized native Steamworks interoperability testing, `libsteam_api.so` and `steam_settings/` belong in a writable test copy of the game. The native game still needs a working packaged or `steam-run` runtime underneath; `gbe_fork` does not supply normal Linux libraries. See [[software/gbe-fork|gbe_fork]] and [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]].
 
 ## Related
 
 - [[system/gaming|Gaming Architecture]]
 - [[software/steam|Steam and Proton]]
 - [[runbooks/non-steam-game|Run a Non-Steam Game]]
+- [[runbooks/per-game-compatibility-layers|Per-Game Compatibility Layers]]
 - [[runbooks/gaming-diagnostics|Gaming Diagnostics]]
 - [[Foreign Binary Packaging]]
 - [[runbooks/binary-packaging|Binary Packaging Runbook]]
