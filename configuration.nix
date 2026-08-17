@@ -14,6 +14,7 @@
       ./modules/niri.nix
       ./modules/nirinit.nix
       ./modules/desktop.nix
+      ./modules/gaming.nix
       ./modules/flatpak.nix
       ./modules/appearance.nix
       ./modules/dms.nix

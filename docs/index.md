@@ -7,7 +7,7 @@ tags:
   - knowledge-base
 type: index
 status: active
-date: 2026-08-16
+date: 2026-08-17
 ---
 
 # NixOS Knowledge Base
@@ -32,6 +32,16 @@ This knowledge base records not only **what** the configuration does, but also *
 - [[Fan Control]] — NBFC configuration and fan curves.
 - [[Crash Investigation]] — unresolved freeze/black-screen investigation.
 - [[services/crash-monitor|Crash Monitor]] — diagnostic service implementation.
+
+## Gaming
+
+- [[system/gaming|Gaming Architecture]] — runtime layers, package sources, GPU policy, and decision table.
+- [[software/steam|Steam and Proton]] — Steam module, Proton policy, GameMode, MangoHud, controllers, and Gamescope.
+- [[software/non-steam-windows-gaming|Non-Steam Windows Gaming]] — UMU, Heroic, Lutris, Bottles, Faugus, and Wine boundaries.
+- [[software/native-linux-games|Native Linux Games]] — Nix packages, Steam Linux titles, and `steam-run`.
+- [[software/gbe-fork|gbe_fork]] — authorized per-game Steamworks interoperability testing.
+- [[runbooks/non-steam-game|Run a Non-Steam Game]]
+- [[runbooks/gaming-diagnostics|Gaming Diagnostics]]
 
 ## Scientific / engineering software
 

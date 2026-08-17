@@ -7,12 +7,14 @@ tags:
   - flakes
 type: architecture
 status: accepted
-date: 2026-08-16
+date: 2026-08-17
 source-files:
   - flake.nix
   - configuration.nix
   - home/home.nix
   - modules/flatpak.nix
+  - modules/gaming.nix
+  - home/gaming.nix
   - modules/logitech-mouse.nix
   - modules/nirinit.nix
 ---
@@ -50,6 +52,7 @@ See [[decisions/0002-stable-plus-unstable|ADR 0002 - Stable Plus Unstable Packag
 - Niri;
 - [[Nirinit]] session persistence;
 - desktop/session integration;
+- [[system/gaming|gaming graphics, Steam, and runtime integration]];
 - declarative [[Flatpak]] applications;
 - appearance;
 - DankMaterialShell;
@@ -61,10 +64,11 @@ System-level packages are intentionally kept relatively small. User-facing appli
 
 ## Home Manager layer
 
-`home/home.nix` imports user modules for appearance, applications, dotfiles, Niri settings, MIME associations, CLI tools, desktop applications, screenshots, downloads, development tooling, and engineering/scientific software.
+`home/home.nix` imports user modules for appearance, applications, dotfiles, Niri settings, MIME associations, CLI tools, desktop applications, screenshots, downloads, development tooling, engineering/scientific software, and gaming launchers/instrumentation.
 
 The scientific package set currently lives in `home/engsci.nix`.
 Reusable programming tools live in `home/development.nix`; project dependencies remain project-local.
+Gaming launchers and opt-in MangoHud configuration live in `home/gaming.nix`; host graphics, Steam, GameMode, and diagnostics live in `modules/gaming.nix`.
 
 ## Local packages
 

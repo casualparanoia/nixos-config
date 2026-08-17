@@ -6,7 +6,7 @@ tags:
   - index
 type: index
 status: active
-date: 2026-08-16
+date: 2026-08-17
 ---
 
 # TODO
@@ -33,6 +33,15 @@ date: 2026-08-16
 - [ ] [[Fan Control]]: continue validating automatic fan behavior under sustained CPU/GPU load.
 - [ ] [[Crash Investigation]]: continue collecting evidence until the black-screen/freeze root cause is isolated.
 - [ ] Review disabled/test kernel parameters before permanently enabling additional workarounds.
+
+## Gaming
+
+- [ ] After activation, verify 64-bit and 32-bit RADV/RadeonSI with [[runbooks/gaming-diagnostics|Gaming Diagnostics]].
+- [ ] Launch Steam, confirm GE-Proton appears as an optional compatibility tool, and test one native and one Proton title.
+- [ ] After a fresh login applies `gamemode` group membership, run `gamemoded -t`, then compare one game with and without GameMode while watching temperatures and crash-monitor evidence.
+- [ ] If Bottles is needed, review its broad device/UMU-directory permissions before declaring the Flatpak or creating a persistent bottle.
+- [ ] Keep Gamescope and Faugus deferred until a real title demonstrates the need.
+- [ ] Consider packaging only `gbe_fork`'s native interface generator if repeated authorized testing justifies maintenance.
 
 ## Packaging
 

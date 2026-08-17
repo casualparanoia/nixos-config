@@ -14,6 +14,7 @@
     ./downloads.nix
     ./engsci.nix
     ./development.nix
+    ./gaming.nix
   ];
 
   my.dotfiles.mode = "live";
