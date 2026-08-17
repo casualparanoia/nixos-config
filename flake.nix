@@ -91,5 +91,11 @@
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
+
+      devShells.${system}.octave-pkg =
+	import ./shells/octave-pkg.nix {
+	  inherit pkgsUnstable;
+        };
+
     };
 }

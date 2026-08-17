@@ -3,7 +3,7 @@
 {
   home.packages = with pkgs; [
     # Build and debugging foundations
-    gcc
+    gfortran
     clang-tools
     cmake
     gnumake
@@ -53,4 +53,5 @@
     vscode-langservers-extracted
     prettier
   ];
+
 }

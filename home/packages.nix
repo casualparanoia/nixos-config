@@ -27,6 +27,8 @@ in
     pkgs.kdePackages.ark
     pkgs._7zz
     pkgsUnstable.ouch
+    pkgs.unzip
+    pkgs.zip
 
     # Document / media
     pkgs.kdePackages.okular
