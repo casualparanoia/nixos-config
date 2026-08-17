@@ -94,6 +94,8 @@ in
     pkgs.ffmpeg
     pkgs.exiftool
 
+    pkgs.gh
+
     # Rust coreutils
     pkgs.uutils-coreutils
 
