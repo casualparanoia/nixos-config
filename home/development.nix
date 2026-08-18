@@ -1,57 +1,66 @@
-{ pkgs, ... }:
+{ pkgs, pkgsUnstable, ... }:
 
 {
-  home.packages = with pkgs; [
-    # Build and debugging foundations
-    gfortran
-    clang-tools
-    cmake
-    gnumake
-    ninja
-    pkg-config
-    gdb
-    lldb
-    valgrind
-    dpkg
+  home.packages = [
+    # Build systems, packaging, and debuggers
+    pkgs.cmake
+    pkgs.gnumake
+    pkgs.ninja
+    pkgs.pkg-config
+    pkgs.gdb
+    pkgs.lldb
+    pkgs.valgrind
+    pkgs.dpkg
 
     # Nix
-    nixd
-    nixfmt
-    statix
-    deadnix
+    pkgsUnstable.nixd
+    pkgs.nixfmt
+    pkgs.statix
+    pkgs.deadnix
 
     # Rust
-    cargo
-    rustc
-    rustfmt
-    clippy
-    rust-analyzer
+    pkgs.cargo
+    pkgs.rustc
+    pkgs.rustfmt
+    pkgs.clippy
+    pkgsUnstable.rust-analyzer
+
+    # C / C++
+    pkgs.clang-tools
 
     # C# / .NET 10 LTS
-    dotnet-sdk_10
-    csharp-ls
-    netcoredbg
+    pkgs.dotnet-sdk_10
+    pkgsUnstable.csharp-ls
+    pkgs.netcoredbg
 
     # Python
-    python3
-    uv
-    ruff
-    ty
+    pkgs.python3
+    pkgsUnstable.uv
+    pkgsUnstable.ruff
+    pkgsUnstable.ty
 
-    # Shell
-    bash-language-server
-    shellcheck
-    shfmt
+    # Bash
+    pkgsUnstable.bash-language-server
+    pkgs.shellcheck
+    pkgs.shfmt
 
-    # Markdown, YAML, KDL, TOML, and JSON
-    marksman
-    markdownlint-cli2
-    yaml-language-server
-    yamllint
-    kdlfmt
-    taplo
-    vscode-langservers-extracted
-    prettier
+    # Markdown
+    pkgsUnstable.markdown-oxide
+    pkgsUnstable.rumdl
+
+    # YAML / KDL / TOML / JSON
+    pkgs.yaml-language-server
+    pkgs.yamllint
+    pkgs.kdlfmt
+    pkgsUnstable.tombi
+    pkgs.vscode-langservers-extracted
+
+    # Lua
+    pkgsUnstable.lua-language-server
+    pkgs.stylua
+
+    # Fortran
+    pkgs.gfortran
+    pkgsUnstable.fortls
   ];
-
 }

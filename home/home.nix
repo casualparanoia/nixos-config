@@ -15,6 +15,9 @@
     ./engsci.nix
     ./development.nix
     ./gaming.nix
+    ./wezterm.nix
+    ./yazi.nix
+    ./helix.nix
   ];
 
   my.dotfiles.mode = "live";

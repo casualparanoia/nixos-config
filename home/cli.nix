@@ -55,16 +55,4 @@
     enableFishIntegration = true;
   };
 
-  programs.yazi = {
-    enable = true;
-    package = pkgsUnstable.yazi;
-
-    enableNushellIntegration = true;
-    enableFishIntegration = true;
-  };
-
-  programs.helix = {
-    enable = true;
-    package = pkgsUnstable.helix;
-  };
 }

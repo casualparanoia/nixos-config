@@ -24,6 +24,12 @@
       ./modules/adguard.nix
     ];
 
+  environment.variables = {
+    EDITOR = "hx";
+    VISUAL = "kate";
+  };
+
+
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;

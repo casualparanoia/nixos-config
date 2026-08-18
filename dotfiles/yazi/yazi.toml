@@ -1,0 +1,40 @@
+[manager]
+# The ratio of the 3 columns (parent dir, current dir, preview)
+ratio          = [ 1, 4, 3 ]
+sort_by        = "alphabetical"
+sort_sensitive = false
+sort_dir_first = true
+linemode       = "size" # Show file sizes next to names
+show_hidden    = false  # Press '.' in Yazi to toggle hidden files
+show_symlink   = true
+
+[preview]
+# Max width/height for image previews
+max_width  = 1920
+max_height = 1080
+# WezTerm supports high-quality image filtering
+image_filter = "lanczos3"
+# Increase preview cache for faster image loading
+image_quality = 90
+sixel_fraction = 15
+
+[opener]
+
+play = [
+  { run = "xdg-open %s1", desc = "Play", for = "linux", orphan = true },
+  { run = "mpv %s1", desc = "mpv", for = "linux", orphan = true },
+  { run = "haruna %s1", desc = "haruna", for = "linux", orphan = true },
+  { run = "mediainfo %s1; echo 'Press enter to exit'; read _", block = true, desc = "Show media info", for = "unix" },
+  
+]
+reveal = [
+  { run = "xdg-open %d1", desc = "Reveal", for = "linux" },
+  { run = "clear; exiftool %s1; echo 'Press enter to exit'; read _", desc = "Show EXIF", for = "unix", block = true },
+]
+
+[open]
+
+prepend_rules = [
+  # ...
+  { mime = "{audio,video}/*", use = [ "play", "reveal" ] },
+]

@@ -14,6 +14,8 @@ in
     pkgs.floorp-bin
     pkgs.vivaldi
     helium.packages.${system}.helium
+ 
+    pkgsUnstable.adguardian
 
     # File management
     pkgs.kdePackages.dolphin
@@ -42,6 +44,7 @@ in
     pkgsUnstable.haruna
     pkgs.mpv
     pkgs.vlc
+    pkgs.mediainfo
 
     # Editor
     pkgs.kdePackages.kate

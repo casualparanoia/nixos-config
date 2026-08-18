@@ -53,7 +53,7 @@ in
 			show-icons: true;
 		
 			
-			terminal: "alacritty";
+			terminal: "wezterm";
 
 			drun-display-format: "{icon} {name}";
 
