@@ -29,7 +29,7 @@ pkgsUnstable.octaveFull
 
 Do **not** place a large `octave.withPackages` environment in the normal Home Manager generation.
 
-When Forge packages are required, prefer a separate project-specific or named development environment so failures in optional Octave packages cannot block unrelated NixOS/Home Manager rebuilds.
+When Forge packages are required, they should be built locally using the `shells/octave-pkg.nix` development shell, which provides the necessary system libraries and compilers, so failures in optional Octave packages cannot block unrelated NixOS/Home Manager rebuilds.
 
 ## Consequences
 

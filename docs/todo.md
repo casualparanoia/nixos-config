@@ -25,7 +25,7 @@ date: 2026-08-17
 - [ ] [[Cantor]]: test whether the Nix package can use the desired installed backends; do not assume the Flatpak can see host Nix executables.
 - [ ] [[qucsator-rf]]: decide whether it needs to be exposed directly on the normal shell `PATH`.
 - [ ] [[R]]: decide between Nix-managed `rWrapper` package sets and per-project `renv`.
-- [ ] [[Octave]]: create an isolated engineering/project environment if Forge packages are needed.
+- [x] [[Octave]]: create an isolated engineering/project environment if Forge packages are needed.
 
 ## Hardware / stability
 
