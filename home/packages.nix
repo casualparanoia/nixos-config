@@ -25,6 +25,7 @@ in
     pkgsUnstable.opencode-desktop
     antigravity-nix.packages.${system}.google-antigravity-ide
     antigravity-nix.packages.${system}.google-antigravity
+    pkgsUnstable.t3code
 
     # Archive
     pkgs.kdePackages.ark
