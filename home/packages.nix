@@ -14,7 +14,7 @@ in
     pkgs.floorp-bin
     pkgs.vivaldi
     helium.packages.${system}.helium
- 
+
     pkgsUnstable.adguardian
 
     # File management
@@ -24,6 +24,7 @@ in
     pkgsUnstable.codex
     pkgsUnstable.opencode-desktop
     antigravity-nix.packages.${system}.google-antigravity-ide
+    antigravity-nix.packages.${system}.google-antigravity
 
     # Archive
     pkgs.kdePackages.ark
@@ -83,6 +84,7 @@ in
     pkgs.patchelf
 
     pkgs.dust
+    pkgsUnstable.dua
     pkgs.duf
     pkgs.bottom
     pkgs.procs
