@@ -107,6 +107,9 @@ in
     "amdgpu.gpu_recovery=1"
   ];
 
+  # option to support certain USB WLAN and WWAN adapters.
+  hardware.usb-modeswitch.enable = true;
+
   #TPM DISABLE
   systemd.tpm2.enable = false;
   boot.initrd.systemd.tpm2.enable = false;
