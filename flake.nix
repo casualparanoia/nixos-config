@@ -17,7 +17,7 @@
     };
     antigravity-nix = {
       url = "github:jacopone/antigravity-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
     nirinit = {
       url = "github:amaanq/nirinit/9ae6f110c652aab8b2ce28dd3696829e8fa1b628"; # v0.2.2
@@ -92,10 +92,9 @@
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
 
-      devShells.${system}.octave-pkg =
-	import ./shells/octave-pkg.nix {
-	  inherit pkgsUnstable;
-        };
+      devShells.${system}.octave-pkg = import ./shells/octave-pkg.nix {
+        inherit pkgsUnstable;
+      };
 
     };
 }

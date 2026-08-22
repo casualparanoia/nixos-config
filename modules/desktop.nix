@@ -2,89 +2,88 @@
 { pkgs, lib, ... }:
 
 {
-	# ------------------------------
-	# AUDIO: Pipewire + WirePlumber
-	# ------------------------------
+  # ------------------------------
+  # AUDIO: Pipewire + WirePlumber
+  # ------------------------------
 
-	security.rtkit.enable = true; # Allows pipewire to request real-tile scheduling.
-	
-	services.pipewire = {
-		enable = true;
+  security.rtkit.enable = true; # Allows pipewire to request real-tile scheduling.
 
-		# Native ALSA applications : Pipewire
-		alsa = {
-			enable = true;
+  services.pipewire = {
+    enable = true;
 
-			# For 32-bit applications
-			support32Bit = true;
-		};
+    # Native ALSA applications : Pipewire
+    alsa = {
+      enable = true;
 
-		#PulseAudio application : Pipewire compatibility server.
-		pulse.enable = true;
+      # For 32-bit applications
+      support32Bit = true;
+    };
 
-		#WirePlumber as Pipewire session and policy manager.
-		wireplumber.enable = true;
-	};
+    #PulseAudio application : Pipewire compatibility server.
+    pulse.enable = true;
 
-	# ------------------------------
-	# BLUETOOTH
-	# ------------------------------
+    #WirePlumber as Pipewire session and policy manager.
+    wireplumber.enable = true;
+  };
 
-	hardware.bluetooth = {
-		enable = true;
+  # ------------------------------
+  # BLUETOOTH
+  # ------------------------------
 
-		powerOnBoot = true;
-	};
+  hardware.bluetooth = {
+    enable = true;
 
-	# GUI Bluetooth Manager for a WN-only environment
-	services.blueman.enable = true;
+    powerOnBoot = true;
+  };
 
-	# -----------------------------------
-	# DESKTOP Hardware/Device Services
-	# -----------------------------------
+  # GUI Bluetooth Manager for a WN-only environment
+  services.blueman.enable = true;
 
-	# Exposes battery and power-device information over D-bus
-	# Bars/Shells and other desktop programs can consume this later.
-	#services.upower.enable = true;
+  # -----------------------------------
+  # DESKTOP Hardware/Device Services
+  # -----------------------------------
 
-	# Gives desktop/user applications controlled access to removable storage
-	services.udisks2.enable = true;
+  # Exposes battery and power-device information over D-bus
+  # Bars/Shells and other desktop programs can consume this later.
+  #services.upower.enable = true;
 
-	# ------------------------------------------------
-	# Basic desktop control/diagnostic applications
-	# ------------------------------------------------
+  # Gives desktop/user applications controlled access to removable storage
+  services.udisks2.enable = true;
 
-	environment.systemPackages = with pkgs; [
-		# Pipewire/PulseAudio GUI mixer and device/profile selector
-		pavucontrol
+  # ------------------------------------------------
+  # Basic desktop control/diagnostic applications
+  # ------------------------------------------------
 
-		# MPRIS media-player control
-		playerctl
+  environment.systemPackages = with pkgs; [
+    # Pipewire/PulseAudio GUI mixer and device/profile selector
+    pavucontrol
 
-		# Utilities such as xdg-open, xdg-utils already installed via services.graphical-desktop.enable
-		
-	];
+    # MPRIS media-player control
+    playerctl
 
-	# -----------------------------------
-	# KDE / Dolphin integration
-	# -----------------------------------
+    # Utilities such as xdg-open, xdg-utils already installed via services.graphical-desktop.enable
 
-	# Dolphin/KService expects a generic applications.menu outside Plasma.
-environment.etc."xdg/menus/applications.menu".text = ''
-  <!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
-    "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">
+  ];
 
-  <Menu>
-    <Name>Applications</Name>
+  # -----------------------------------
+  # KDE / Dolphin integration
+  # -----------------------------------
 
-    <DefaultAppDirs/>
+  # Dolphin/KService expects a generic applications.menu outside Plasma.
+  environment.etc."xdg/menus/applications.menu".text = ''
+    <!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN"
+      "http://www.freedesktop.org/standards/menu-spec/1.0/menu.dtd">
 
-    <Include>
-      <All/>
-    </Include>
-  </Menu>
-'';
+    <Menu>
+      <Name>Applications</Name>
 
+      <DefaultAppDirs/>
+
+      <Include>
+        <All/>
+      </Include>
+    </Menu>
+  '';
 
   programs.nix-ld = {
     enable = true;
@@ -92,19 +91,29 @@ environment.etc."xdg/menus/applications.menu".text = ''
     libraries = [
       (lib.getLib pkgs.openssl)
       pkgs.stdenv.cc.cc.lib
+
+      # SDL3 Wayland runtime
+      (lib.getLib pkgs.wayland)
+      (lib.getLib pkgs.libxkbcommon)
+      (lib.getLib pkgs.libdecor)
+
+      # OpenGL loader / dispatch libraries
+      (lib.getLib pkgs.libglvnd)
+
+      # SDL3 native PipeWire audio
+      (lib.getLib pkgs.pipewire)
     ];
   };
-programs.thunar = {
-  enable = true;
+  programs.thunar = {
+    enable = true;
 
-  plugins = with pkgs; [
-    thunar-archive-plugin
-    thunar-volman
-  ];
-};
+    plugins = with pkgs; [
+      thunar-archive-plugin
+      thunar-volman
+    ];
+  };
 
-services.tumbler.enable = true;
-services.gvfs.enable = true;
-
+  services.tumbler.enable = true;
+  services.gvfs.enable = true;
 
 }

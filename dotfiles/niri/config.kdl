@@ -390,7 +390,13 @@ window-rule {
 	match app-id=r#"^com\.github\.hluk\.copyq$"#
 	open-floating true
 }
-
+overview {
+  // Set a lower zoom value to zoom out further (default is ~0.5)
+  // 0.25 makes workspaces 4x smaller than 1:1 scale
+  zoom 0.35
+backdrop-color "#111119"
+workspace-shadow { on; }
+}
 
 binds {
     // Keys consist of modifiers separated by + signs, followed by an XKB key name
