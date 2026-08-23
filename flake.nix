@@ -98,10 +98,6 @@
       nixosConfigurations = {
         gl702zc = mkSystem ./hosts/gl702zc;
         desktop = mkSystem ./hosts/desktop;
-
-        # Temporary compatibility alias.
-        # Remove after the GL702ZC successfully rebuilds as .#gl702zc.
-        nixos = mkSystem ./hosts/gl702zc;
       };
 
       packages.${system} = {
