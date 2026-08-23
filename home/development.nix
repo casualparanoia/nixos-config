@@ -2,6 +2,8 @@
 
 {
   home.packages = [
+    pkgs.kdePackages.kate
+
     # Build systems, packaging, and debuggers
     pkgs.cmake
     pkgs.gnumake
@@ -62,5 +64,13 @@
     # Fortran
     pkgs.gfortran
     pkgsUnstable.fortls
+
+    # Version Control
+    pkgs.gh
+    pkgs.git
+    pkgs.delta
+    pkgs.lazygit
+    pkgsUnstable.jujutsu
+    pkgsUnstable.lazyjj
   ];
 }

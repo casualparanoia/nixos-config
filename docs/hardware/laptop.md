@@ -22,7 +22,7 @@ This page is the anchor for configuration that should not be assumed portable to
 
 ## Current kernel/hardware tuning represented in source
 
-`modules/hardware-tuning.nix` currently includes, among other things:
+`hosts/gl702zc/hardware.nix` and `hosts/gl702zc/fan-control.nix` currently include, among other things:
 
 - `amd_pstate=active`;
 - native ACPI backlight handling;

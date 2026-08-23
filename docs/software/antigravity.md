@@ -11,7 +11,7 @@ status: active
 date: 2026-08-15
 source-files:
   - flake.nix
-  - home/packages.nix
+  - home/ai.nix
 ---
 
 # Antigravity

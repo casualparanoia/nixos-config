@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+    cat <<EOF
+Usage: $0 <command> [args...]
+
+Commands:
+  switch
+      Rebuilds and switches the current host to its NixOS configuration.
+      This does not perform destructive actions.
+
+  install <host>
+      Bootstrap a fresh system on a secondary physical disk.
+      Requires explicit confirmation and a target disk provided by environment
+      or argument to prevent destructive guessing.
+
+  refresh-hardware <host>
+      Regenerate the NixOS Facter report for the specified host.
+EOF
+    exit 1
+}
+
+cmd_switch() {
+    echo "Switching system configuration..."
+    sudo nixos-rebuild switch --flake "$REPO_ROOT"
+}
+
+cmd_install() {
+    local host="${1:-}"
+    if [[ -z "$host" ]]; then
+        echo "Error: Missing host argument."
+        usage
+    fi
+
+    if [[ "$host" != "desktop" ]]; then
+        echo "Error: Install script currently only configured for 'desktop' host."
+        exit 1
+    fi
+
+    # Require NixOS installer environment
+    if ! grep -q 'VARIANT_ID="installer"' /etc/os-release 2>/dev/null && \
+       ! grep -q 'VARIANT_ID=installer' /etc/os-release 2>/dev/null; then
+        echo "Error: The 'install' command must be run from a NixOS live/install environment."
+        exit 1
+    fi
+
+    echo "This is the first-install/bootstrap path intended for a NixOS live ISO."
+    echo "This process WILL DESTROY DATA on the target disk."
+
+    local target_disk="${TARGET_DISK:-}"
+    if [[ -z "$target_disk" ]]; then
+        echo "Error: You must provide a target disk via the TARGET_DISK environment variable."
+        echo "Example: TARGET_DISK=/dev/disk/by-id/nvme-Samsung_SSD_980_PRO_1TB_S5GXNX0T1234567 $0 install desktop"
+        echo "Please use a stable identifier (/dev/disk/by-id/...), not /dev/nvme0n1."
+        exit 1
+    fi
+
+    if [[ ! -b "$target_disk" ]]; then
+        echo "Error: Target disk '$target_disk' does not exist."
+        exit 1
+    fi
+
+    if [[ "$target_disk" != /dev/disk/by-id/* ]]; then
+        echo "Error: Target disk '$target_disk' is not a stable identifier. Please use /dev/disk/by-id/..."
+        exit 1
+    fi
+
+    # Verify that the target is a whole disk, not a partition
+    # lsblk TYPE column outputs "disk" or "part"
+    local disk_type
+    disk_type="$(lsblk -d -n -o TYPE "$target_disk" || true)"
+    if [[ "$disk_type" != "disk" ]]; then
+        echo "Error: Target disk '$target_disk' is a '$disk_type', not a whole 'disk'."
+        echo "Please provide the base device identifier, not a partition."
+        exit 1
+    fi
+
+    echo "Target disk hierarchy identified:"
+    lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,MODEL,SERIAL "$target_disk"
+
+    read -p "Are you absolutely sure you want to FORMAT this disk and install NixOS? [y/N] " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo "Installation aborted."
+        exit 0
+    fi
+
+    # Prompt securely for the bootstrap password
+    local pass1 pass2
+    echo -n "Enter initial password for user 'casua': "
+    read -s pass1
+    echo
+    echo -n "Confirm password: "
+    read -s pass2
+    echo
+    if [[ "$pass1" != "$pass2" ]]; then
+        echo "Error: Passwords do not match."
+        exit 1
+    fi
+
+    # Create temporary file for hash with restrictive permissions
+    local TMP_HASH
+    TMP_HASH="$(mktemp /tmp/casua-hash-XXXXXX)"
+    chmod 600 "$TMP_HASH"
+
+    # Ensure temporary file is deleted on exit or error
+    trap 'rm -f "$TMP_HASH"' EXIT
+
+    echo "Generating password hash using mkpasswd..."
+    # Generate yescrypt hash (default for modern mkpasswd from mkpasswd package)
+    echo "$pass1" | nix run "$REPO_ROOT#nixpkgs.mkpasswd" -- -m yescrypt > "$TMP_HASH"
+
+    local facter_path="$REPO_ROOT/hosts/$host/facter.json"
+    if [[ ! -f "$facter_path" ]]; then
+        echo "Generating Facter report..."
+        # Use pinned nixos-facter from the flake's output
+        sudo nix run "$REPO_ROOT#nixos-facter" -- -o "$facter_path"
+        echo "Facter report generated at $facter_path"
+    else
+        echo "Facter report already exists. Skipping generation."
+    fi
+
+    # Make the newly generated file visible to Nix flake evaluation
+    git -C "$REPO_ROOT" add --intent-to-add --force -- "$facter_path"
+
+    echo "Running disko-install..."
+    # We use disko-install from the pinned disko flake input.
+    # --write-efi-boot-entries modifies UEFI NVRAM to add a boot entry for this installation
+    # and may alter the firmware boot priority/default, but it does NOT modify the Windows
+    # ESP/partitions, since NixOS has its own ESP on its own disk.
+    # We override the disk placeholder using the --disk argument.
+    # We securely pass the password hash file using --extra-files.
+    sudo nix run "$REPO_ROOT#disko-install" -- \
+        --flake "$REPO_ROOT#$host" \
+        --disk main "$target_disk" \
+        --write-efi-boot-entries \
+        --extra-files "$TMP_HASH" /etc/nixos-secrets/casua-password-hash
+
+    echo "Installation complete."
+    echo "All done. You can now reboot."
+}
+
+cmd_refresh_hardware() {
+    local host="${1:-}"
+    if [[ -z "$host" ]]; then
+        echo "Error: Missing host argument."
+        usage
+    fi
+
+    if [[ "$host" != "desktop" ]]; then
+        echo "Error: refresh-hardware is currently restricted to 'desktop' (Facter-based) host."
+        exit 1
+    fi
+
+    local facter_path="$REPO_ROOT/hosts/$host/facter.json"
+    echo "Regenerating Facter report for $host at $facter_path..."
+    sudo nix run "$REPO_ROOT#nixos-facter" -- -o "$facter_path"
+    git -C "$REPO_ROOT" add --intent-to-add --force -- "$facter_path"
+    echo "Done."
+}
+
+if [[ $# -eq 0 ]]; then
+    usage
+fi
+
+command="$1"
+shift
+
+case "$command" in
+    switch)
+        cmd_switch "$@"
+        ;;
+    install)
+        cmd_install "$@"
+        ;;
+    refresh-hardware)
+        cmd_refresh_hardware "$@"
+        ;;
+    *)
+        echo "Error: Unknown command '$command'"
+        usage
+        ;;
+esac

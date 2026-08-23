@@ -11,7 +11,7 @@ type: hardware
 status: experimental
 date: 2026-08-14
 source-files:
-  - modules/hardware-tuning.nix
+  - hosts/gl702zc/fan-control.nix
 ---
 
 # Fan Control
@@ -57,16 +57,16 @@ NBFC-Linux is provided through the unstable package set:
 pkgsUnstable.nbfc-linux
 ```
 
-The package itself is installed in:
+The package itself is installed via `environment.systemPackages` directly in:
 
 ```text
-modules/packages.nix
+hosts/gl702zc/fan-control.nix
 ```
 
-The machine-specific configuration and service are defined in:
+The machine-specific configuration and service are also defined in:
 
 ```text
-modules/hardware-tuning.nix
+hosts/gl702zc/fan-control.nix
 ```
 
 ## Embedded-controller backend

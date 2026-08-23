@@ -5,13 +5,13 @@
     package = pkgsUnstable.nushell;
 
     settings = {
-	show_banner = false;
+      show_banner = false;
 
-	history = {
-	  file_format = "sqlite";
-	  sync_on_enter = true;
-	  isolation = false;
-	};
+      history = {
+        file_format = "sqlite";
+        sync_on_enter = true;
+        isolation = false;
+      };
     };
   };
 
@@ -28,19 +28,19 @@
     icons = "auto";
     git = true;
   };
-  
+
   programs.carapace = {
     enable = true;
     enableNushellIntegration = true;
     enableFishIntegration = true;
   };
- 
+
   programs.bat = {
     enable = true;
 
     config = {
-	pager = "less -FR";
-	style = "numbers,changer,header";
+      pager = "less -FR";
+      style = "numbers,changer,header";
     };
   };
 
@@ -55,4 +55,27 @@
     enableFishIntegration = true;
   };
 
+  home.packages = [
+    # General CLI
+    pkgs.jq
+    pkgs.yq-go
+    pkgs.sd
+    pkgs.patchelf
+
+    pkgs.dust
+    pkgsUnstable.dua
+    pkgs.duf
+    pkgs.bottom
+    pkgs.procs
+
+    pkgs.hyperfine
+    pkgs.fastfetch
+    pkgs.tealdeer
+    pkgs.tokei
+
+    pkgs.libqalculate
+
+    # Rust coreutils
+    pkgs.uutils-coreutils
+  ];
 }

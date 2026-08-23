@@ -3,7 +3,11 @@
 {
   imports = [
     ./appearance.nix
-    ./packages.nix
+    ./browsers.nix
+    ./files.nix
+    ./media.nix
+    ./communication.nix
+    ./ai.nix
     ./dotfiles.nix
     ./niri.nix
     ./mime.nix

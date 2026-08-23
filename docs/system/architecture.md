@@ -10,7 +10,9 @@ status: accepted
 date: 2026-08-17
 source-files:
   - flake.nix
-  - configuration.nix
+  - profiles/workstation.nix
+  - hosts/gl702zc/default.nix
+  - hosts/desktop/default.nix
   - home/home.nix
   - modules/flatpak.nix
   - modules/gaming.nix
@@ -45,9 +47,8 @@ See [[decisions/0002-stable-plus-unstable|ADR 0002 - Stable Plus Unstable Packag
 
 ## NixOS layer
 
-`configuration.nix` imports machine/system modules including:
+System configuration is split into host-specific definitions (`hosts/`) and shared generic profiles (`profiles/workstation.nix`). The workstation profile imports machine/system modules including:
 
-- hardware tuning and workarounds;
 - [[Logitech Mouse Tools]] and their device-access rules;
 - Niri;
 - [[Nirinit]] session persistence;
@@ -59,6 +60,8 @@ See [[decisions/0002-stable-plus-unstable|ADR 0002 - Stable Plus Unstable Packag
 - system packages;
 - [[services/crash-monitor|Crash Monitor]];
 - AdGuard Home.
+
+Host-specific modules like hardware workarounds and Disko definitions reside in `hosts/<host>/`.
 
 System-level packages are intentionally kept relatively small. User-facing applications generally belong to Home Manager unless they need system integration.
 

@@ -9,9 +9,6 @@
     pkgs.psmisc
     pkgs.lsof
     pkgs.lm_sensors
-    pkgsUnstable.nbfc-linux
-
-
     pkgs.ripgrep
     pkgs.fd
   ];

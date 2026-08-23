@@ -14,7 +14,7 @@ status: investigating
 date: 2026-08-16
 source-files:
   - modules/crash-monitor.nix
-  - modules/hardware-tuning.nix
+  - hosts/gl702zc/hardware.nix
 ---
 
 # Crash Investigation

@@ -11,7 +11,7 @@ type: hardware
 status: active-workaround
 date: 2026-08-14
 source-files:
-  - modules/hardware-tuning.nix
+  - hosts/gl702zc/backlight.nix
 ---
 
 # AMD Backlight Workaround
@@ -28,7 +28,7 @@ On this machine, requested brightness values near the reported top of the range 
 
 ## Current mitigation
 
-`modules/hardware-tuning.nix` defines a shell script that:
+`hosts/gl702zc/backlight.nix` defines a shell script that:
 
 1. checks whether `/sys/class/backlight/amdgpu_bl1/brightness` exists;
 2. reads the requested brightness;

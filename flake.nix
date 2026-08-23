@@ -8,7 +8,6 @@
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
-
       inputs.nixpkgs.follows = "nixpkgs";
     };
     helium = {
@@ -31,10 +30,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
     {
+      self,
       nixpkgs,
       nixpkgs-unstable,
       home-manager,
@@ -44,6 +48,7 @@
       nix-flatpak,
       vicinae,
       nix-index-database,
+      disko,
       ...
     }:
     let
@@ -53,41 +58,55 @@
         inherit system;
         config.allowUnfree = true;
       };
+
+      mkSystem =
+        hostModule:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = {
+            inherit pkgsUnstable;
+          };
+          modules = [
+            hostModule
+
+            nirinit.nixosModules.nirinit
+            nix-flatpak.nixosModules.nix-flatpak
+            nix-index-database.nixosModules.default
+            disko.nixosModules.disko
+
+            home-manager.nixosModules.home-manager
+            {
+              home-manager = {
+                useGlobalPkgs = true;
+                backupFileExtension = "hm-backup";
+
+                sharedModules = [
+                  vicinae.homeManagerModules.default
+                ];
+
+                extraSpecialArgs = {
+                  inherit pkgsUnstable helium antigravity-nix;
+                };
+
+                users.casua = import ./home/home.nix;
+              };
+            }
+          ];
+        };
     in
     {
-      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-        inherit system;
+      nixosConfigurations = {
+        gl702zc = mkSystem ./hosts/gl702zc;
+        desktop = mkSystem ./hosts/desktop;
 
-        specialArgs = {
-          inherit pkgsUnstable;
-        };
+        # Temporary compatibility alias.
+        # Remove after the GL702ZC successfully rebuilds as .#gl702zc.
+        nixos = mkSystem ./hosts/gl702zc;
+      };
 
-        modules = [
-          ./configuration.nix
-
-          nirinit.nixosModules.nirinit
-          nix-flatpak.nixosModules.nix-flatpak
-          nix-index-database.nixosModules.default
-
-          home-manager.nixosModules.home-manager
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-
-              backupFileExtension = "hm-backup";
-
-              sharedModules = [
-                vicinae.homeManagerModules.default
-              ];
-
-              extraSpecialArgs = {
-                inherit pkgsUnstable helium antigravity-nix;
-              };
-
-              users.casua = import ./home/home.nix;
-            };
-          }
-        ];
+      packages.${system} = {
+        disko-install = disko.packages.${system}.disko-install;
+        nixos-facter = nixpkgs.legacyPackages.${system}.nixos-facter;
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
@@ -95,6 +114,5 @@
       devShells.${system}.octave-pkg = import ./shells/octave-pkg.nix {
         inherit pkgsUnstable;
       };
-
     };
 }
