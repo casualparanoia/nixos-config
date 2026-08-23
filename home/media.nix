@@ -2,19 +2,21 @@
 
 {
   home.packages = [
-    # Media and image viewers
-    pkgs.kdePackages.gwenview
-    pkgs.imv
+    # Image
+    pkgsUnstable.kdePackages.gwenview
+    pkgsUnstable.imv
+
+    # Audio
     pkgsUnstable.spotify
-    pkgs.deezer-desktop
+    pkgsUnstable.deezer-desktop
     pkgsUnstable.calibre
 
     # Video
     pkgsUnstable.haruna
-    pkgs.mpv
-    pkgs.vlc
-    pkgs.mediainfo
-    pkgs.ffmpeg
-    pkgs.exiftool
+    pkgsUnstable.mpv
+    pkgsUnstable.vlc
+    pkgsUnstable.mediainfo
+    pkgsUnstable.ffmpeg
+    pkgsUnstable.exiftool
   ];
 }

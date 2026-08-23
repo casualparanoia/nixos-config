@@ -9,10 +9,14 @@
     pkgsUnstable.octaveFull
 
     # Official Julia binary repackaged by Nixpkgs.
-    pkgs.julia-bin
+    pkgsUnstable.julia-bin
 
     # Computer algebra / mathematics.
-    pkgs.sage
+    # Sage's test suite is a separate, very expensive derivation and is not
+    # required at runtime. Avoid forcing it into normal system builds.
+    (pkgsUnstable.sage.override {
+      requireSageTests = false;
+    })
 
     # R 4.6.1 in unstable.
     pkgsUnstable.R
@@ -22,16 +26,16 @@
 
     # SPICE simulator.
     # Keep the Nixpkgs version for now; consider our own ngspice 47 later.
-    # pkgs.ngspice
+    # pkgsUnstable.ngspice
 
     # Schematic frontend + multiple simulation kernels.
-    # pkgs.qucs-s
+    # pkgsUnstable.qucs-s
 
     # High-performance SPICE-compatible simulator.
-    pkgs.xyce
+    pkgsUnstable.xyce
 
     # PCB / schematic EDA suite.
-    pkgs.kicad
+    pkgsUnstable.kicad
 
     # EM field solver.
     # Use unstable to keep its Octave dependency in the same package set
@@ -39,15 +43,15 @@
     pkgsUnstable.openems
 
     # SDR / DSP framework and GNU Radio Companion.
-    pkgs.gnuradio
+    pkgsUnstable.gnuradio
 
     # Optional: expose qucsator_rf directly on the normal shell PATH.
     # Qucs-S already contains it as one of its default simulation kernels.
-    # pkgs.qucsator-rf
+    # pkgsUnstable.qucsator-rf
 
 
     # ----- Optional scientific frontend -----
 
-    # pkgs.kdePackages.cantor
+    # pkgsUnstable.kdePackages.cantor
   ];
 }

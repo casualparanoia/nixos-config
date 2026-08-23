@@ -1,11 +1,11 @@
 # ~/nixos-config/home/appearance.nix
-{ pkgs, ... }:
+{ pkgs, pkgsUnstable, ... }:
 
 {
   # Cursor
   home.pointerCursor = {
     enable = true;
-    package = pkgs.kdePackages.breeze;
+    package = pkgsUnstable.kdePackages.breeze;
     name = "breeze_cursors";
     size = 24;
 
@@ -25,7 +25,7 @@
     };
 
     iconTheme = {
-	package = pkgs.kdePackages.breeze-icons;
+	package = pkgsUnstable.kdePackages.breeze-icons;
 	name = "breeze";
     };
   };

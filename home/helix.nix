@@ -39,8 +39,8 @@
           args = [ "start" ];
 
           config.bashIde = {
-            shellcheckPath = "${pkgs.shellcheck}/bin/shellcheck";
-            shfmt.path = "${pkgs.shfmt}/bin/shfmt";
+            shellcheckPath = "${pkgsUnstable.shellcheck}/bin/shellcheck";
+            shfmt.path = "${pkgsUnstable.shfmt}/bin/shfmt";
           };
         };
 
@@ -55,7 +55,7 @@
           name = "nix";
           language-servers = [ "nixd" ];
           auto-format = true;
-          formatter.command = "${pkgs.nixfmt}/bin/nixfmt";
+          formatter.command = "${pkgsUnstable.nixfmt}/bin/nixfmt";
         }
 
         {
@@ -66,13 +66,13 @@
         {
           name = "c";
           language-servers = [ "clangd" ];
-          formatter.command = "${pkgs.clang-tools}/bin/clang-format";
+          formatter.command = "${pkgsUnstable.clang-tools}/bin/clang-format";
         }
 
         {
           name = "cpp";
           language-servers = [ "clangd" ];
-          formatter.command = "${pkgs.clang-tools}/bin/clang-format";
+          formatter.command = "${pkgsUnstable.clang-tools}/bin/clang-format";
         }
 
         {
@@ -124,7 +124,7 @@
           name = "kdl";
           language-servers = [ ];
           formatter = {
-            command = "${pkgs.kdlfmt}/bin/kdlfmt";
+            command = "${pkgsUnstable.kdlfmt}/bin/kdlfmt";
             args = [
               "format"
               "-"
@@ -146,7 +146,7 @@
           name = "lua";
           language-servers = [ "lua-language-server" ];
           formatter = {
-            command = "${pkgs.stylua}/bin/stylua";
+            command = "${pkgsUnstable.stylua}/bin/stylua";
             args = [ "-" ];
           };
         }

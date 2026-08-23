@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, pkgsUnstable, ... }:
 
 {
   imports = [
@@ -16,7 +16,7 @@
     username = "casua";
     homeDirectory = "/home/casua";
     stateVersion = "26.05";
-    packages = [ pkgs.wl-clipboard ];
+    packages = [ pkgsUnstable.wl-clipboard ];
     sessionVariables = {
       COLORTERM = "truecolor";
     };

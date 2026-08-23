@@ -3,18 +3,22 @@
 {
   programs.eza = {
     enable = true;
+    package = pkgsUnstable.eza;
     icons = "auto";
     git = true;
   };
 
   programs.carapace = {
     enable = true;
+    # Kept on stable HM default: overriding package causes evaluation
+    # conflicts due to Home Manager's tight wrapper schema.
     # enable case-insensitive matching if supported
     ignoreCase = true;
   };
 
   programs.bat = {
     enable = true;
+    package = pkgsUnstable.bat;
 
     config = {
       pager = "less -FR";
@@ -24,36 +28,38 @@
 
   programs.zoxide = {
     enable = true;
+    package = pkgsUnstable.zoxide;
   };
 
   programs.fzf = {
     enable = true;
+    package = pkgsUnstable.fzf;
   };
 
   home.packages = [
     # General CLI
-    pkgs.jq
-    pkgs.yq-go
-    pkgs.sd
-    pkgs.patchelf
+    pkgsUnstable.jq
+    pkgsUnstable.yq-go
+    pkgsUnstable.sd
+    pkgsUnstable.patchelf
 
-    pkgs.dust
+    pkgsUnstable.dust
     pkgsUnstable.dua
-    pkgs.duf
-    pkgs.bottom
-    pkgs.procs
+    pkgsUnstable.duf
+    pkgsUnstable.bottom
+    pkgsUnstable.procs
 
-    pkgs.hyperfine
-    pkgs.fastfetch
-    pkgs.tealdeer
-    pkgs.tokei
+    pkgsUnstable.hyperfine
+    pkgsUnstable.fastfetch
+    pkgsUnstable.tealdeer
+    pkgsUnstable.tokei
 
-    pkgs.libqalculate
-    pkgs.ripgrep
-    pkgs.fd
-    pkgs.file
+    pkgsUnstable.libqalculate
+    pkgsUnstable.ripgrep
+    pkgsUnstable.fd
+    pkgsUnstable.file
 
     # Rust coreutils
-    pkgs.uutils-coreutils
+    pkgsUnstable.uutils-coreutils
   ];
 }

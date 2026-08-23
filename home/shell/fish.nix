@@ -3,6 +3,8 @@
 {
   programs.fish = {
     enable = true;
+    # Kept on stable Nixpkgs because pkgsUnstable.fish (Fish 4.x) removed
+    # the Python manpage completion script that HM 26.05 expects, breaking builds.
   };
 
   programs.eza.enableFishIntegration = true;

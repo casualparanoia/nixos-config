@@ -107,14 +107,12 @@ Do not point Heroic, Lutris, Bottles, raw Wine, and UMU at the same writable pre
 | Component | Source | Decision |
 |---|---|---|
 | Steam, GE-Proton, Protontricks, GameMode | Stable Nixpkgs | Current module-native integration; no unstable fix is required. |
-| Heroic, Lutris, UMU, MangoHud | Stable Nixpkgs | Current enough and already wrapped for NixOS/FHS or multilib use. Heroic/Lutris use their supported `extraPkgs` hook for GameMode only. |
+| Heroic, Lutris, UMU, MangoHud | Unstable Nixpkgs | Explicitly selected user applications following the standard unstable policy. Heroic/Lutris use their supported `extraPkgs` hook for GameMode only. |
 | Bottles | Not installed; prefer Flathub if selected | Upstream calls Flatpak its most supported and tested distribution, but its current manifest has broad device and UMU-directory access that must be reviewed first. |
 | Faugus | Not installed | Useful UMU GUI, but redundant with direct UMU plus Lutris; pinned stable is 1.22.6 while upstream is 2.1.0. |
 | Raw Wine and Winetricks | Not installed | Existing launchers own normal game runtimes; install only for a concrete manual-prefix need. |
 | Gamescope | Not enabled | Useful for specific Niri/fullscreen/scaling problems, but adds another compositor and is not yet required. |
 | `gbe_fork` | Not packaged | Per-game authorized test files, not a host runtime. A narrow helper package may be justified later. |
-
-No gaming component currently uses `pkgsUnstable`. This follows [[Package Source Policy]] rather than selecting unstable solely for a higher version.
 
 ## Wayland and Niri
 

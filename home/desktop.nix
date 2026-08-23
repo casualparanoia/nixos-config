@@ -3,10 +3,12 @@
 {
   services.copyq = {
     enable = true;
+    package = pkgsUnstable.copyq;
     forceXWayland = false;
   };
   programs.zapzap = {
     enable = true;
+    package = pkgsUnstable.zapzap;
   };
 programs.vicinae = {
   enable = true;

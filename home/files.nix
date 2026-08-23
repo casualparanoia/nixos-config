@@ -3,26 +3,26 @@
 {
   home.packages = [
     # File management
-    pkgs.kdePackages.dolphin
+    pkgsUnstable.kdePackages.dolphin
 
     # Archive
-    pkgs.kdePackages.ark
-    pkgs._7zz
+    pkgsUnstable.kdePackages.ark
+    pkgsUnstable._7zz
     pkgsUnstable.ouch
-    pkgs.unzip
-    pkgs.zip
+    pkgsUnstable.unzip
+    pkgsUnstable.zip
 
     # Documents
-    pkgs.kdePackages.okular
+    pkgsUnstable.kdePackages.okular
 
     # Dolphin/KDE integration
-    pkgs.kdePackages.kservice
-    pkgs.kdePackages.qtsvg
-    pkgs.kdePackages.kio
-    pkgs.kdePackages.kio-fuse
-    pkgs.kdePackages.kio-extras
-    pkgs.qt6Packages.qtstyleplugin-kvantum
-    pkgs.kdePackages.qtstyleplugin-kvantum
-    pkgs.libsForQt5.qtstyleplugin-kvantum
+    pkgsUnstable.kdePackages.kservice
+    pkgsUnstable.kdePackages.qtsvg
+    pkgsUnstable.kdePackages.kio
+    pkgsUnstable.kdePackages.kio-fuse
+    pkgsUnstable.kdePackages.kio-extras
+    pkgsUnstable.qt6Packages.qtstyleplugin-kvantum
+    pkgsUnstable.kdePackages.qtstyleplugin-kvantum
+    pkgsUnstable.libsForQt5.qtstyleplugin-kvantum
   ];
 }

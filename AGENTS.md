@@ -97,6 +97,18 @@ registries, or similar framework machinery unless explicitly requested.
 
 A small abstraction is justified only when it removes real duplication.
 
+## Package policy
+
+- `pkgs` = stable nixos-26.05 package set
+- `pkgsUnstable` = nixos-unstable
+- For the operating system: `stable = normal`
+- For explicitly selected user packages: `unstable = normal`, `stable = exception`
+- NixOS remains stable.
+- Home Manager remains release-26.05.
+- Ordinary explicitly selected applications/tools normally use `pkgsUnstable`.
+- Stable explicit application selections are exceptions.
+- System/module defaults remain stable unless intentionally overridden.
+
 Preserve the stable/unstable package-source policy. Do not silently migrate
 packages between package sets during unrelated changes.
 

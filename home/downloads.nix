@@ -9,7 +9,7 @@ in
     abDownloadManager
 
     # We can compare it with this later:
-    # pkgs.persepolis
+    # pkgsUnstable.persepolis
     pkgsUnstable.motrix-next
   ];
 }

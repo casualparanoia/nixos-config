@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, pkgsUnstable, ... }:
 
 {
   imports = [
@@ -6,6 +6,6 @@
   ];
 
   home.packages = [
-    pkgs.kdePackages.kate
+    pkgsUnstable.kdePackages.kate
   ];
 }

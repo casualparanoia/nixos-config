@@ -3,71 +3,71 @@
 {
   home.packages = [
     # Build systems, packaging, and debuggers
-    pkgs.cmake
-    pkgs.gnumake
-    pkgs.ninja
-    pkgs.pkg-config
-    pkgs.gdb
-    pkgs.lldb
-    pkgs.valgrind
-    pkgs.dpkg
+    pkgsUnstable.cmake
+    pkgsUnstable.gnumake
+    pkgsUnstable.ninja
+    pkgsUnstable.pkg-config
+    pkgsUnstable.gdb
+    pkgsUnstable.lldb
+    pkgsUnstable.valgrind
+    pkgsUnstable.dpkg
 
     # Nix
     pkgsUnstable.nixd
-    pkgs.nixfmt
-    pkgs.statix
-    pkgs.deadnix
+    pkgsUnstable.nixfmt
+    pkgsUnstable.statix
+    pkgsUnstable.deadnix
 
     # Rust
-    pkgs.cargo
-    pkgs.rustc
-    pkgs.rustfmt
-    pkgs.clippy
+    pkgsUnstable.cargo
+    pkgsUnstable.rustc
+    pkgsUnstable.rustfmt
+    pkgsUnstable.clippy
     pkgsUnstable.rust-analyzer
 
     # C / C++
-    pkgs.clang-tools
+    pkgsUnstable.clang-tools
 
     # C# / .NET 10 LTS
-    pkgs.dotnet-sdk_10
+    pkgsUnstable.dotnet-sdk_10
     pkgsUnstable.csharp-ls
-    pkgs.netcoredbg
+    pkgsUnstable.netcoredbg
 
     # Python
-    pkgs.python3
+    pkgsUnstable.python3
     pkgsUnstable.uv
     pkgsUnstable.ruff
     pkgsUnstable.ty
 
     # Bash
     pkgsUnstable.bash-language-server
-    pkgs.shellcheck
-    pkgs.shfmt
+    pkgsUnstable.shellcheck
+    pkgsUnstable.shfmt
 
     # Markdown
     pkgsUnstable.markdown-oxide
     pkgsUnstable.rumdl
 
     # YAML / KDL / TOML / JSON
-    pkgs.yaml-language-server
-    pkgs.yamllint
-    pkgs.kdlfmt
+    pkgsUnstable.yaml-language-server
+    pkgsUnstable.yamllint
+    pkgsUnstable.kdlfmt
     pkgsUnstable.tombi
-    pkgs.vscode-langservers-extracted
+    pkgsUnstable.vscode-langservers-extracted
 
     # Lua
     pkgsUnstable.lua-language-server
-    pkgs.stylua
+    pkgsUnstable.stylua
 
     # Fortran
-    pkgs.gfortran
+    pkgsUnstable.gfortran
     pkgsUnstable.fortls
 
     # Version Control
-    pkgs.gh
-    pkgs.git
-    pkgs.delta
-    pkgs.lazygit
+    pkgsUnstable.gh
+    pkgsUnstable.git
+    pkgsUnstable.delta
+    pkgsUnstable.lazygit
     pkgsUnstable.jujutsu
     pkgsUnstable.lazyjj
   ];

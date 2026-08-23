@@ -1,7 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, pkgsUnstable, ... }:
 
 {
-  home.packages = with pkgs; [
+  home.packages = with pkgsUnstable; [
     (heroic.override {
       extraPkgs = pkgs': [ pkgs'.gamemode ];
     })
@@ -14,6 +14,7 @@
 
   programs.mangohud = {
     enable = true;
+    package = pkgsUnstable.mangohud;
     enableSessionWide = false;
 
     settings = {

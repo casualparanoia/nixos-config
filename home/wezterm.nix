@@ -1,8 +1,8 @@
-{ config, pkgs, ... }:
+{ config, pkgsUnstable, ... }:
 {
   programs.wezterm = {
     enable = true;
-    # By omitting the 'package' argument, it natively defaults to pkgs.wezterm
+    package = pkgsUnstable.wezterm;
   };
 
   # Link your config just like you did with Alacritty

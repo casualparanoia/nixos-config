@@ -1,14 +1,14 @@
-{ pkgs, ... }:
+{ pkgs, pkgsUnstable, ... }:
 
 {
   home.packages = [
     # VPN
-    pkgs.proton-vpn
+    pkgsUnstable.proton-vpn
 
     # Mail
-    pkgs.thunderbird
+    pkgsUnstable.thunderbird
 
     # Communication
-    pkgs.signal-desktop
+    pkgsUnstable.signal-desktop
   ];
 }

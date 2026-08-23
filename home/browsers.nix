@@ -10,8 +10,8 @@ let
 in
 {
   home.packages = [
-    pkgs.floorp-bin
-    pkgs.vivaldi
+    pkgsUnstable.floorp-bin
+    pkgsUnstable.vivaldi
     helium.packages.${system}.helium
 
     pkgsUnstable.adguardian

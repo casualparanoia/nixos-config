@@ -17,7 +17,7 @@ let
 
       while [ "$i" -lt 3000 ]; do
         if [ -s "$file" ]; then
-          exec ${pkgs.ksnip}/bin/ksnip --edit "$file"
+          exec ${pkgsUnstable.ksnip}/bin/ksnip --edit "$file"
         fi
 
         ${pkgs.coreutils}/bin/sleep 0.02
@@ -34,13 +34,13 @@ in
 {
   home.packages = [
     pkgsUnstable.flameshot
-    pkgs.grim
-    pkgs.slurp
-    pkgs.satty
-    pkgs.ksnip
+    pkgsUnstable.grim
+    pkgsUnstable.slurp
+    pkgsUnstable.satty
+    pkgsUnstable.ksnip
     pkgsUnstable.wayshot
-    pkgs.shutter
-    pkgs.kdePackages.spectacle
+    pkgsUnstable.shutter
+    pkgsUnstable.kdePackages.spectacle
     screenshotKsnip
   ];
 
@@ -48,7 +48,7 @@ in
     [general]
     floating-hack = true
 
-    copy-command = "${pkgs.wl-clipboard}/bin/wl-copy"
+    copy-command = "${pkgsUnstable.wl-clipboard}/bin/wl-copy"
 
     # Copy button / Ctrl+C closes Satty afterwards.
     early-exit = ["copy"]
