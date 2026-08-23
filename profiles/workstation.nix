@@ -10,7 +10,7 @@
     ../modules/flatpak.nix
     ../modules/appearance.nix
     ../modules/dms.nix
-    ../modules/packages.nix
+    ../modules/hardware-tools.nix
     ../modules/crash-monitor.nix
     ../modules/adguard.nix
     ../modules/user.nix
@@ -25,21 +25,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Experimental Features, Flakes etc.
-  nix.settings = {
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-
-    extra-substituters = [
-      "https://vicinae.cachix.org"
-    ];
-
-    extra-trusted-public-keys = [
-      "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
-    ];
-  };
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -76,8 +61,6 @@
     ];
   };
 
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
   # Enable the OpenSSH daemon.
   services.openssh = {

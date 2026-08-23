@@ -9,6 +9,8 @@
 
   programs.carapace = {
     enable = true;
+    # enable case-insensitive matching if supported
+    ignoreCase = true;
   };
 
   programs.bat = {
@@ -47,6 +49,9 @@
     pkgs.tokei
 
     pkgs.libqalculate
+    pkgs.ripgrep
+    pkgs.fd
+    pkgs.file
 
     # Rust coreutils
     pkgs.uutils-coreutils

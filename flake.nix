@@ -74,6 +74,7 @@
           };
           modules = [
             hostModule
+            ./modules/nix.nix
 
             nirinit.nixosModules.nirinit
             nix-flatpak.nixosModules.nix-flatpak
