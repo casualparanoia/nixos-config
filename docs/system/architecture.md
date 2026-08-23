@@ -13,7 +13,9 @@ source-files:
   - profiles/workstation.nix
   - hosts/gl702zc/default.nix
   - hosts/desktop/default.nix
+  - hosts/wsl/default.nix
   - home/home.nix
+  - home/wsl.nix
   - modules/flatpak.nix
   - modules/gaming.nix
   - home/gaming.nix
@@ -62,6 +64,7 @@ System configuration is split into host-specific definitions (`hosts/`) and shar
 - AdGuard Home.
 
 Host-specific modules like hardware workarounds and Disko definitions reside in `hosts/<host>/`.
+A minimal, CLI-focused NixOS-WSL host resides in `hosts/wsl/`. It is intentionally conservative and omits the graphical workstation profile to act as a robust entry point for debugging, Nix evaluation, and repository maintenance.
 
 System-level packages are intentionally kept relatively small. User-facing applications generally belong to Home Manager unless they need system integration.
 

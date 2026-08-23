@@ -34,6 +34,11 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nixos-wsl = {
+      url = "github:nix-community/NixOS-WSL/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -49,6 +54,7 @@
       vicinae,
       nix-index-database,
       disko,
+      nixos-wsl,
       ...
     }:
     let
@@ -60,7 +66,7 @@
       };
 
       mkSystem =
-        hostModule:
+        { hostModule, homeModule ? ./home/home.nix, extraModules ? [] }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = {
@@ -88,16 +94,21 @@
                   inherit pkgsUnstable helium antigravity-nix;
                 };
 
-                users.casua = import ./home/home.nix;
+                users.casua = import homeModule;
               };
             }
-          ];
+          ] ++ extraModules;
         };
     in
     {
       nixosConfigurations = {
-        gl702zc = mkSystem ./hosts/gl702zc;
-        desktop = mkSystem ./hosts/desktop;
+        gl702zc = mkSystem { hostModule = ./hosts/gl702zc; };
+        desktop = mkSystem { hostModule = ./hosts/desktop; };
+        wsl = mkSystem {
+          hostModule = ./hosts/wsl;
+          homeModule = ./home/wsl.nix;
+          extraModules = [ nixos-wsl.nixosModules.default ];
+        };
       };
 
       packages.${system} = {

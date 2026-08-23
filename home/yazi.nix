@@ -4,10 +4,7 @@
     enable = true;
     package = pkgsUnstable.yazi;
     
-    # Optional: Enable shell integration so typing `y` wraps Yazi 
-    # and changes your shell directory when you quit.
-    enableNushellIntegration = true;
-    enableFishIntegration = true;
+    # Shell integrations are managed in home/shell/*.nix
 
   };
 

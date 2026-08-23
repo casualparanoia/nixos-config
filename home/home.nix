@@ -12,6 +12,9 @@
     ./niri.nix
     ./mime.nix
     ./cli.nix
+    ./shell/bash.nix
+    ./shell/fish.nix
+    ./shell/nushell.nix
     ./desktop.nix
     ./alacritty.nix
     ./screenshot.nix

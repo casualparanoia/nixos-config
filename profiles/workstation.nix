@@ -13,6 +13,7 @@
     ../modules/packages.nix
     ../modules/crash-monitor.nix
     ../modules/adguard.nix
+    ../modules/user.nix
   ];
 
   environment.variables = {
@@ -67,15 +68,12 @@
     variant = "";
   };
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  # Define host-specific groups for casua.
   users.users."casua" = {
-    isNormalUser = true;
-    description = "casua";
     extraGroups = [
       "networkmanager"
       "wheel"
     ];
-    packages = with pkgs; [ ];
   };
 
   # Allow unfree packages
