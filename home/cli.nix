@@ -59,6 +59,8 @@
     pkgsUnstable.fd
     pkgsUnstable.file
 
+    pkgsUnstable.ouch
+
     # Rust coreutils
     pkgsUnstable.uutils-coreutils
   ];

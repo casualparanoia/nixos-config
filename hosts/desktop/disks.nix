@@ -3,9 +3,9 @@
     disk = {
       main = {
         type = "disk";
-        # DO NOT hardcode /dev/nvme0n1 or similar, as enumeration can change.
-        # When booted from the live ISO, identify the correct disk (e.g. by using `lsblk` and checking model/size)
-        # Then replace this placeholder with the stable `/dev/disk/by-id/...` path.
+        # The device placeholder remains intentionally invalid in the tracked file.
+        # Users should NOT replace it during installation.
+        # `scripts/system install desktop` supplies the real device through Disko's `--disk main ...` override.
         device = "/dev/disk/by-id/PLEASE-SET-ME-DURING-INSTALL";
         content = {
           type = "gpt";

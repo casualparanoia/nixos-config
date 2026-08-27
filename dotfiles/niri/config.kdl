@@ -694,4 +694,4 @@ binds {
     Mod+Shift+P { power-off-monitors; }
 }
 
-include "dms/cursor.kdl"
+include optional=true "dms/cursor.kdl"

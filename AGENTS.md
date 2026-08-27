@@ -141,15 +141,12 @@ When Nix is available:
 
     nix flake check
     sudo nixos-rebuild build --flake .#gl702zc
-
-During the migration, also verify:
-
-    sudo nixos-rebuild build --flake .#nixos
+    sudo nixos-rebuild build --flake .#desktop
+    sudo nixos-rebuild build --flake .#wsl
 
 Do not run `nixos-rebuild switch` unless explicitly requested.
 
-The desktop should only be treated as fully evaluable once its required real
-hardware artifacts exist.
+The desktop configuration can evaluate and build before `facter.json` exists because Facter use is conditional.
 
 Never claim a Nix build/check succeeded when Nix was unavailable.
 

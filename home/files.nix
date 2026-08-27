@@ -8,9 +8,8 @@
     # Archive
     pkgsUnstable.kdePackages.ark
     pkgsUnstable._7zz
-    pkgsUnstable.ouch
-    pkgsUnstable.unzip
     pkgsUnstable.zip
+    pkgsUnstable.unzip
 
     # Documents
     pkgsUnstable.kdePackages.okular

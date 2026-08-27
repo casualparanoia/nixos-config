@@ -31,10 +31,10 @@ in
     # Temprorary
     enableVPN = false;
 
-    # Temprorary?
+    # wallpaper-derived DMS dynamic theming is intentionally disabled
     enableDynamicTheming = false;
 
-    # Optional - Temprorary
+    # Other optional UI features
     enableAudioWavelength = false;
     enableCalendarEvents = false;
   };

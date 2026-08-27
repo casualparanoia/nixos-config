@@ -28,6 +28,25 @@ cmd_switch() {
     sudo nixos-rebuild switch --flake "$REPO_ROOT"
 }
 
+# Cleanup variables
+INSTALL_TMP_HASH=""
+INSTALL_MNT=""
+
+cleanup_install() {
+    if [[ -n "${INSTALL_MNT:-}" ]]; then
+        if mountpoint -q "$INSTALL_MNT"; then
+            sudo umount -R "$INSTALL_MNT" || true
+        fi
+        rmdir "$INSTALL_MNT" 2>/dev/null || true
+        INSTALL_MNT=""
+    fi
+
+    if [[ -n "${INSTALL_TMP_HASH:-}" ]]; then
+        rm -f -- "$INSTALL_TMP_HASH" || true
+        INSTALL_TMP_HASH=""
+    fi
+}
+
 cmd_install() {
     local host="${1:-}"
     if [[ -z "$host" ]]; then
@@ -39,6 +58,13 @@ cmd_install() {
         echo "Error: Install script currently only configured for 'desktop' host."
         exit 1
     fi
+
+    if [[ "$EUID" -eq 0 ]]; then
+        echo "Error: The install script must be run as a normal user. It will request sudo internally."
+        exit 1
+    fi
+
+    trap cleanup_install EXIT
 
     # Require NixOS installer environment
     if ! grep -q 'VARIANT_ID="installer"' /etc/os-release 2>/dev/null && \
@@ -78,12 +104,27 @@ cmd_install() {
         exit 1
     fi
 
-    echo "Target disk hierarchy identified:"
-    lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,MODEL,SERIAL "$target_disk"
+    if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Error: The installer must be run from within a valid Git repository checkout."
+        exit 1
+    fi
 
-    read -p "Are you absolutely sure you want to FORMAT this disk and install NixOS? [y/N] " confirm
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        echo "Installation aborted."
+    echo "Installation source state:"
+    git -C "$REPO_ROOT" rev-parse HEAD
+    git -C "$REPO_ROOT" status --short
+    echo
+
+    echo "Target disk hierarchy identified ($target_disk):"
+    lsblk -o NAME,MAJ:MIN,SIZE,TYPE,FSTYPE,MOUNTPOINT,MODEL,SERIAL "$target_disk"
+
+    echo
+    echo "WARNING: All data on this disk will be DESTROYED."
+    echo "To confirm, type the exact resolved device name (e.g. the NAME from the output above, like 'nvme0n1' or 'sda'):"
+    read -p "> " confirm
+    local resolved_name
+    resolved_name="$(lsblk -d -n -o NAME "$target_disk")"
+    if [[ "$confirm" != "$resolved_name" ]]; then
+        echo "Confirmation failed (expected '$resolved_name', got '$confirm'). Installation aborted."
         exit 0
     fi
 
@@ -97,26 +138,34 @@ cmd_install() {
     echo
     if [[ "$pass1" != "$pass2" ]]; then
         echo "Error: Passwords do not match."
+        unset pass1 pass2
         exit 1
     fi
 
     # Create temporary file for hash with restrictive permissions
-    local TMP_HASH
-    TMP_HASH="$(mktemp /tmp/casua-hash-XXXXXX)"
-    chmod 600 "$TMP_HASH"
+    INSTALL_TMP_HASH="$(mktemp /tmp/casua-hash-XXXXXX)"
+    chmod 600 "$INSTALL_TMP_HASH"
 
-    # Ensure temporary file is deleted on exit or error
-    trap 'rm -f "$TMP_HASH"' EXIT
+    # Register the cleanup trap explicitly
+    trap cleanup_install EXIT
 
     echo "Generating password hash using mkpasswd..."
     # Generate yescrypt hash (default for modern mkpasswd from mkpasswd package)
-    echo "$pass1" | nix run "$REPO_ROOT#nixpkgs.mkpasswd" -- -m yescrypt > "$TMP_HASH"
+    printf '%s\n' "$pass1" | nix run --inputs-from "$REPO_ROOT" nixpkgs#mkpasswd -- -m yescrypt -s > "$INSTALL_TMP_HASH"
+    unset pass1 pass2
 
     local facter_path="$REPO_ROOT/hosts/$host/facter.json"
     if [[ ! -f "$facter_path" ]]; then
         echo "Generating Facter report..."
         # Use pinned nixos-facter from the flake's output
         sudo nix run "$REPO_ROOT#nixos-facter" -- -o "$facter_path"
+
+        # Normalize ownership to the repo owner
+        local repo_uid repo_gid
+        repo_uid="$(stat -c '%u' "$REPO_ROOT")"
+        repo_gid="$(stat -c '%g' "$REPO_ROOT")"
+        sudo chown "$repo_uid:$repo_gid" "$facter_path"
+
         echo "Facter report generated at $facter_path"
     else
         echo "Facter report already exists. Skipping generation."
@@ -126,17 +175,103 @@ cmd_install() {
     git -C "$REPO_ROOT" add --intent-to-add --force -- "$facter_path"
 
     echo "Running disko-install..."
-    # We use disko-install from the pinned disko flake input.
-    # --write-efi-boot-entries modifies UEFI NVRAM to add a boot entry for this installation
-    # and may alter the firmware boot priority/default, but it does NOT modify the Windows
-    # ESP/partitions, since NixOS has its own ESP on its own disk.
-    # We override the disk placeholder using the --disk argument.
-    # We securely pass the password hash file using --extra-files.
     sudo nix run "$REPO_ROOT#disko-install" -- \
         --flake "$REPO_ROOT#$host" \
         --disk main "$target_disk" \
         --write-efi-boot-entries \
-        --extra-files "$TMP_HASH" /etc/nixos-secrets/casua-password-hash
+        --extra-files "$INSTALL_TMP_HASH" /etc/nixos-secrets/casua-password-hash \
+        --extra-files "$REPO_ROOT" /home/casua/nixos-config
+
+    echo "Mounting installed root to fix ownership and permissions..."
+
+    # Find the root partition exactly
+    # 1. Resolve exact physical disk
+    local target_disk_real
+    target_disk_real="$(realpath "$target_disk")"
+
+    # 2. Inspect descendants and find TYPE=part, PARTLABEL=disk-main-root
+    local root_part=""
+    local matches=0
+
+    while IFS= read -r part; do
+        if [[ -n "$part" ]]; then
+            root_part="$part"
+            matches=$((matches + 1))
+        fi
+    done < <(lsblk -P -o PATH,TYPE,PARTLABEL "$target_disk_real" | awk -v q='"' '$0 ~ "TYPE="q"part"q && $0 ~ "PARTLABEL="q"disk-main-root"q { match($0, /PATH="([^"]+)"/, arr); print arr[1] }')
+
+    if [[ $matches -eq 0 ]]; then
+        echo "Error: Found no partition with PARTLABEL 'disk-main-root' on $target_disk_real"
+        exit 1
+    elif [[ $matches -gt 1 ]]; then
+        echo "Error: Found multiple partitions with PARTLABEL 'disk-main-root' on $target_disk_real"
+        exit 1
+    fi
+
+    echo "Identified root partition: $root_part"
+    lsblk -o NAME,MAJ:MIN,SIZE,TYPE,FSTYPE,PARTLABEL,MOUNTPOINT "$root_part"
+
+    INSTALL_MNT="$(mktemp -d /tmp/nixos-mnt-XXXXXX)"
+    sudo mount "$root_part" "$INSTALL_MNT"
+
+    # Read the casua entry from <target-root>/etc/passwd
+    if [[ ! -f "$INSTALL_MNT/etc/passwd" ]]; then
+        echo "Error: /etc/passwd not found in target root."
+        exit 1
+    fi
+
+    local casua_entry casua_uid casua_gid
+    casua_entry="$(grep '^casua:' "$INSTALL_MNT/etc/passwd" || true)"
+    if [[ -z "$casua_entry" ]]; then
+        echo "Error: User 'casua' not found in target system."
+        exit 1
+    fi
+    if [[ $(echo "$casua_entry" | wc -l) -ne 1 ]]; then
+        echo "Error: Multiple entries for 'casua' found in target system."
+        exit 1
+    fi
+
+    casua_uid="$(echo "$casua_entry" | awk -F: '{print $3}')"
+    casua_gid="$(echo "$casua_entry" | awk -F: '{print $4}')"
+
+    echo "Target 'casua' user resolved to UID: $casua_uid, GID: $casua_gid"
+
+    sudo chown -R "${casua_uid}:${casua_gid}" "$INSTALL_MNT/home/casua/nixos-config"
+    sudo chown "${casua_uid}:${casua_gid}" "$INSTALL_MNT/home/casua"
+
+    local target_hash_path="$INSTALL_MNT/etc/nixos-secrets/casua-password-hash"
+    if [[ ! -f "$target_hash_path" ]]; then
+        echo "Error: Password hash file missing from target system at $target_hash_path"
+        exit 1
+    fi
+
+    sudo chown 0:0 "$target_hash_path"
+    sudo chmod 600 "$target_hash_path"
+
+    echo "Hash file ownership and permissions fixed:"
+    sudo stat -c "%U:%G %a" "$target_hash_path"
+
+    # Verify persisted checkout
+    echo "Verifying persisted checkout..."
+    local checkout_dir="$INSTALL_MNT/home/casua/nixos-config"
+    for expected in ".git" "flake.nix" "flake.lock" "hosts/desktop/facter.json" "dotfiles/niri" "dotfiles/wezterm" "dotfiles/yazi"; do
+        if sudo test ! -e "$checkout_dir/$expected"; then
+            echo "Error: Persisted checkout is missing $expected"
+            exit 1
+        fi
+    done
+    echo "Persisted checkout verified."
+
+    echo "Unmounting installed root..."
+    sudo umount "$INSTALL_MNT"
+    rmdir "$INSTALL_MNT"
+    INSTALL_MNT=""
+
+    rm -f -- "$INSTALL_TMP_HASH"
+    INSTALL_TMP_HASH=""
+
+    # Successful cleanup is complete; the EXIT fallback is no longer needed.
+    trap - EXIT
 
     echo "Installation complete."
     echo "All done. You can now reboot."
@@ -157,6 +292,13 @@ cmd_refresh_hardware() {
     local facter_path="$REPO_ROOT/hosts/$host/facter.json"
     echo "Regenerating Facter report for $host at $facter_path..."
     sudo nix run "$REPO_ROOT#nixos-facter" -- -o "$facter_path"
+
+    # Normalize ownership to the repo owner
+    local repo_uid repo_gid
+    repo_uid="$(stat -c '%u' "$REPO_ROOT")"
+    repo_gid="$(stat -c '%g' "$REPO_ROOT")"
+    sudo chown "$repo_uid:$repo_gid" "$facter_path"
+
     git -C "$REPO_ROOT" add --intent-to-add --force -- "$facter_path"
     echo "Done."
 }

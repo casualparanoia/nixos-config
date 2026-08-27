@@ -11,7 +11,6 @@
     ../modules/appearance.nix
     ../modules/dms.nix
     ../modules/hardware-tools.nix
-    ../modules/crash-monitor.nix
     ../modules/adguard.nix
     ../modules/user.nix
   ];

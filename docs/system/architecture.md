@@ -33,7 +33,7 @@ The machine is configured by a flake with stable Nixpkgs as the primary package 
 nixpkgs             -> nixos-26.05 (default/stable package set)
 nixpkgs-unstable    -> nixos-unstable (selectively imported as pkgsUnstable)
 home-manager        -> release-26.05, following stable nixpkgs
-antigravity-nix     -> dedicated, lockfile-pinned Antigravity package
+antigravity-nix     -> dedicated, lockfile-pinned Antigravity package, following unstable nixpkgs
 nirinit             -> v0.2.2 Niri session service, following stable nixpkgs
 nix-flatpak         -> v0.7.0 declarative Flatpak NixOS module
 nix-index-database  -> command-not-found database, following stable nixpkgs
@@ -43,7 +43,7 @@ vicinae             -> launcher Home Manager module and package
 
 `pkgsUnstable` is imported once in `flake.nix` and passed through `specialArgs` to NixOS modules and `extraSpecialArgs` to Home Manager modules. This allows explicit package-by-package selection without changing the entire system to unstable.
 
-Home Manager, Helium, Antigravity, nirinit, and nix-index follow the primary Nixpkgs input where their interfaces permit it. `nix-flatpak` has no Nixpkgs input. Vicinae retains the package inputs defined by its upstream flake.
+Home Manager, nirinit, and nix-index follow the primary Nixpkgs input, while Antigravity follows unstable Nixpkgs. Helium's browser environment is isolated via a pinned flake lock. `nix-flatpak` has no Nixpkgs input. Vicinae retains the package inputs defined by its upstream flake.
 
 See [[decisions/0002-stable-plus-unstable|ADR 0002 - Stable Plus Unstable Package Sets]].
 
@@ -60,7 +60,6 @@ System configuration is split into host-specific definitions (`hosts/`) and shar
 - appearance;
 - DankMaterialShell;
 - system packages;
-- [[services/crash-monitor|Crash Monitor]];
 - AdGuard Home.
 
 Host-specific modules like hardware workarounds and Disko definitions reside in `hosts/<host>/`.
