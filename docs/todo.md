@@ -27,6 +27,11 @@ date: 2026-08-17
 - [ ] [[R]]: decide between Nix-managed `rWrapper` package sets and per-project `renv`.
 - [x] [[Octave]]: create an isolated engineering/project environment if Forge packages are needed.
 
+## Private self-hosting
+
+- [ ] Complete [[runbooks/private-server|private-server deployment]]: provision secrets and private DNS, activate deliberately, verify the live firewall/sandbox and cable-absent NetBird access.
+- [ ] Compare PhotoPrism labels/faces with Immich using explicit originals indexing while monitoring state growth.
+
 ## Hardware / stability
 
 - [ ] [[hardware/backlight|AMD Backlight Workaround]]: determine the root cause of brightness wrap/drop above the safe request value.

@@ -19,6 +19,7 @@ This page is the anchor for configuration that should not be assumed portable to
 - [[Fan Control]]
 - [[Crash Investigation]]
 - [[services/crash-monitor|Crash Monitor]]
+- [[services/private-server|GL702ZC Private Server]] — workstation/server role and declarative lid/sleep policy.
 
 ## Current kernel/hardware tuning represented in source
 

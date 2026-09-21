@@ -7,6 +7,8 @@
     ./fan-control.nix
     ./backlight.nix
     ../../modules/crash-monitor.nix
+    ./media.nix
+    ./server.nix
 
     # Shared workstation profile
     ../../profiles/workstation.nix

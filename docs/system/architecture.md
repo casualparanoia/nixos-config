@@ -12,6 +12,8 @@ source-files:
   - flake.nix
   - profiles/workstation.nix
   - hosts/gl702zc/default.nix
+  - hosts/gl702zc/server.nix
+  - hosts/gl702zc/media.nix
   - hosts/desktop/default.nix
   - hosts/wsl/default.nix
   - home/home.nix
@@ -64,6 +66,12 @@ System configuration is split into host-specific definitions (`hosts/`) and shar
 
 Host-specific modules like hardware workarounds and Disko definitions reside in `hosts/<host>/`.
 A minimal, CLI-focused NixOS-WSL host resides in `hosts/wsl/`. It is intentionally conservative and omits the graphical workstation profile to act as a robust entry point for debugging, Nix evaluation, and repository maintenance.
+
+GL702ZC additionally serves as a private home server while retaining the workstation
+profile. Its host-local `server.nix` owns private networking, Caddy ingress, search
+and unattended power policy; `media.nix` owns shared originals and photo services.
+See [[services/private-server|GL702ZC Private Server]] for the boundaries and
+[[runbooks/private-server|Private Server Runbook]] for external state and deployment.
 
 System-level packages are intentionally kept relatively small. User-facing applications generally belong to Home Manager unless they need system integration.
 

@@ -82,6 +82,9 @@ Deferred or undecided:
 
 ## Operations
 
+- [[services/private-server|GL702ZC Private Server]] — private topology, shared originals, and service boundaries.
+- [[runbooks/private-server|Private Server Runbook]] — secrets, DNS, deployment and diagnostics.
+- [[runbooks/media-ingest|Media Transfer and Ingest]] — direct Ethernet staging and checked archive ingestion.
 - [[runbooks/rebuild|Rebuild Runbook]]
 - [[runbooks/crash-monitor|Crash Monitor Runbook]]
 

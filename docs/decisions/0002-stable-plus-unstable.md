@@ -21,7 +21,7 @@ Some applications need newer versions than the stable NixOS release provides, wh
 
 ## Decision
 
-Use `nixos-26.05` as the default `nixpkgs` input and import a second `nixos-unstable` input as `pkgsUnstable`. Select unstable packages explicitly where there is a concrete reason.
+Use `nixos-26.05` as the default `nixpkgs` input and import a second `nixos-unstable` input as `pkgsUnstable`. Explicitly selected user-facing applications and tools normally use unstable; operating-system infrastructure and NixOS module defaults normally remain stable. Infrastructure exceptions, such as GL702ZC's NetBird override, remain explicit and documented.
 
 The flake passes `pkgsUnstable` into both NixOS modules and Home Manager modules.
 

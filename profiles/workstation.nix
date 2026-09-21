@@ -18,6 +18,7 @@
   environment.variables = {
     EDITOR = "hx";
     VISUAL = "kate";
+    SUDO_EDITOR = "hx";
   };
 
   # Bootloader.
