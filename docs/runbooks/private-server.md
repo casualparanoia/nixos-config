@@ -10,6 +10,7 @@ tags:
 source-files:
   - hosts/gl702zc/server.nix
   - hosts/gl702zc/media.nix
+  - hosts/gl702zc/personal-services.nix
 ---
 
 # Private Server Runbook
@@ -26,8 +27,11 @@ Create the private directory outside the repository and Nix store:
 sudo install -d -o root -g root -m 0700 /var/lib/private-server-secrets
 sudoedit /var/lib/private-server-secrets/photoprism-admin-password
 sudoedit /var/lib/private-server-secrets/searx.env
-sudo chown root:root /var/lib/private-server-secrets/photoprism-admin-password /var/lib/private-server-secrets/searx.env
-sudo chmod 0600 /var/lib/private-server-secrets/photoprism-admin-password /var/lib/private-server-secrets/searx.env
+sudoedit /var/lib/private-server-secrets/linkding.env
+sudoedit /var/lib/private-server-secrets/freshrss-password
+sudoedit /var/lib/private-server-secrets/ntfy.env
+sudo chown root:root /var/lib/private-server-secrets/{photoprism-admin-password,searx.env,linkding.env,freshrss-password,ntfy.env}
+sudo chmod 0600 /var/lib/private-server-secrets/{photoprism-admin-password,searx.env,linkding.env,freshrss-password,ntfy.env}
 ```
 
 The PhotoPrism file contains only the chosen initial admin password (8–72
@@ -42,6 +46,35 @@ Hex avoids quoting/JSON-escaping problems in the module's environment substituti
 These files are mandatory: missing credentials/environment files prevent startup.
 Do not copy them into the repository to make a build pass.
 
+The linkding file is a systemd environment file with exactly this variable and
+the chosen initial password as its value:
+
+```text
+LD_SUPERUSER_PASSWORD=replace-with-the-real-password
+```
+
+The username is declaratively fixed to `casua`. The value initializes a new
+account; changing the file later does not rotate an existing account password.
+The FreshRSS file contains only the chosen plaintext initial password, with no
+variable name. It remains root-only: systemd reads the source and delivers a
+read-only `freshrss-password` credential to `freshrss-config.service` under that
+unit's private `/run/credentials` directory. The unprivileged `freshrss` service
+identity does not read the source file directly. FreshRSS updates the `casua`
+account from the delivered credential when its configuration unit runs, so keep
+the source file synchronized with the intended login.
+
+ntfy user and token provisioning is stateful and happens after its first
+activation. Before that activation, create `ntfy.env` with two empty variables so
+Gatus can validate and start without embedding a temporary credential:
+
+```text
+GATUS_NTFY_TOKEN=
+SMARTD_NTFY_TOKEN=
+```
+
+Until real tokens replace those empty values, ntfy's deny-by-default policy
+rejects alert publication. Do not reuse the linkding or FreshRSS passwords here.
+
 When rotating SearXNG's key later, restart `searx-init.service` and then
 `searx.service` so `/run/searx/settings.yml` is regenerated. Changing an external
 file alone does not change the Nix derivation or reload it.
@@ -54,9 +87,10 @@ In the NetBird control plane, manually:
    interactive expiry that would strand the machine.
 2. Retain the private zone `home.arpa` and the working
    `immich.home.arpa -> 100.72.185.137` record.
-3. Add `photoprism.home.arpa` and `search.home.arpa`, also pointing at
-   `100.72.185.137`, and distribute this private DNS configuration to the intended
-   client group.
+3. Add `photoprism.home.arpa`, `search.home.arpa`, `status.home.arpa`,
+   `notify.home.arpa`, `dashboard.home.arpa`, `bookmarks.home.arpa` and
+   `rss.home.arpa`, all pointing at `100.72.185.137`, and distribute this private
+   DNS configuration to the intended client group.
 4. Confirm peer access policies permit the intended clients to reach TCP 80 and
    the existing OpenSSH service. Do not enable NetBird's separate SSH server.
 
@@ -65,6 +99,10 @@ Wi-Fi address must never be substituted into persistent private DNS records.
 On Windows, AdGuard and ProtonVPN DNS handling previously interfered with the
 private zone. Verify name resolution and routing independently; a successful
 NetBird connection does not prove the Windows resolver uses its DNS policy.
+Add these five corresponding AdGuard DNS rewrites on the desktop, each targeting
+`100.72.185.137`: `status.home.arpa`, `notify.home.arpa`,
+`dashboard.home.arpa`, `bookmarks.home.arpa` and `rss.home.arpa`. This is a
+manual Windows-side step; NixOS does not manage it.
 
 ## Validate a generation
 
@@ -84,7 +122,7 @@ Inspect generated ingress and units:
 
 ```bash
 nix shell path:.#nixosConfigurations.gl702zc.pkgs.caddy -c caddy adapt --config result/etc/caddy/caddy_config --adapter caddyfile
-systemd-analyze verify result/etc/systemd/system/photoprism.service result/etc/systemd/system/searx.service result/etc/systemd/system/searx-init.service
+systemd-analyze verify result/etc/systemd/system/{gatus,ntfy-sh,smartd,glance,linkding,linkding-setup,freshrss-config}.service
 ```
 
 Caddy validation also opens log destinations; before activation,
@@ -167,25 +205,98 @@ restart can disrupt graphical sessions: schedule it, then verify the effective
 policy before relying on closing the lid. A successful build alone proves
 neither the live power behavior nor that the new profile is active.
 
+## Provision ntfy access after first activation
+
+The first activation creates `/var/lib/ntfy-sh` and starts ntfy with anonymous
+access denied. The service uses `DynamicUser` with a systemd-managed, id-mapped
+`StateDirectory`: `/var/lib/ntfy-sh` points at `private/ntfy-sh`, whose backing
+ownership can appear as `nobody:nogroup` outside the service namespace. Ordinary
+`sudo -u ntfy-sh` does not reproduce that filesystem view and cannot administer
+the SQLite authentication database. Run every stateful ntfy CLI command in a
+transient unit with the same identity and state-directory model:
+
+```bash
+ntfy_admin() {
+  sudo systemd-run --wait --pty --collect \
+    -p DynamicUser=yes \
+    -p User=ntfy-sh \
+    -p Group=ntfy-sh \
+    -p StateDirectory=ntfy-sh \
+    /run/current-system/sw/bin/ntfy "$@"
+}
+
+ntfy_admin user add --role=admin casua
+ntfy_admin user add monitoring
+ntfy_admin access monitoring server-alerts write-only
+ntfy_admin token add --label=gatus monitoring
+ntfy_admin token add --label=smartd monitoring
+```
+
+Choose strong, distinct passwords at the prompts. The two token commands print
+different `tk_...` values. Put them into the matching variables in the existing
+root-owned `ntfy.env`; never put them in Nix or commit them. Then load the Gatus
+token and verify the ACL without sending a permanent test notification:
+
+```bash
+sudo systemctl restart gatus
+ntfy_admin access monitoring
+ntfy_admin token list monitoring
+```
+
+smartd reads its token file only when its notification helper runs, so token
+rotation does not require restarting smartd. For rotation, create a distinctly
+labeled replacement, update the matching variable in `ntfy.env`, restart Gatus
+only when its token changes, verify the token list, and remove the old token only
+after the replacement works:
+
+```bash
+# Use smartd-next instead when rotating SMARTD_NTFY_TOKEN.
+ntfy_admin token add --label=gatus-next monitoring
+sudoedit /var/lib/private-server-secrets/ntfy.env
+sudo systemctl restart gatus
+ntfy_admin token list monitoring
+read -r -s -p "Token to remove: " TOKEN_TO_REMOVE; printf '\n'
+ntfy_admin token remove monitoring "$TOKEN_TO_REMOVE"
+unset TOKEN_TO_REMOVE
+```
+
+ntfy tokens inherit the publisher user's write-only `server-alerts` ACL; they
+are not administrator tokens. Define `ntfy_admin` again in a new shell before
+running later access, token-list or rotation commands.
+
+After the first FreshRSS login, set a modest global article purge policy under
+**Configuration → Archiving** (for example, a 90-day or per-feed article limit)
+and preserve only deliberately starred articles. No subscriptions are imported
+by this deployment. The configuration enables neither automatic SQLite exports
+nor full-content retrieval extensions; any later export still needs independent
+backup storage.
+
 ## Verify after deployment
 
 On GL702ZC, inspect service state, listening sockets, and logs without starting
 archive jobs:
 
 ```bash
-systemctl status caddy immich-server immich-machine-learning photoprism searx searx-init netbird
+systemctl status caddy gatus ntfy-sh smartd glance linkding linkding-setup freshrss-config phpfpm-freshrss
 ss -lnt
 curl --fail http://127.0.0.1:2283/api/server/ping
 curl --fail --resolve immich.home.arpa:80:127.0.0.1 http://immich.home.arpa/api/server/ping
 curl --fail --resolve photoprism.home.arpa:80:127.0.0.1 http://photoprism.home.arpa/
+curl --fail --resolve notify.home.arpa:80:127.0.0.1 http://notify.home.arpa/v1/health
+curl --fail --resolve bookmarks.home.arpa:80:127.0.0.1 http://bookmarks.home.arpa/health
+curl --fail --resolve status.home.arpa:80:127.0.0.1 http://status.home.arpa/health
+curl --fail --resolve dashboard.home.arpa:80:127.0.0.1 http://dashboard.home.arpa/
+curl --fail --resolve rss.home.arpa:80:127.0.0.1 http://rss.home.arpa/
 curl --fail --resolve search.home.arpa:80:127.0.0.1 http://search.home.arpa/
-journalctl -u caddy -u photoprism -u searx -u searx-init -n 80 --no-pager
+journalctl -u caddy -u gatus -u ntfy-sh -u smartd -u glance -u linkding -u freshrss-config -n 100 --no-pager
 netbird status
 ```
 
-Expected backends listen only on `127.0.0.1:2283`, `127.0.0.1:2342` and
-`127.0.0.1:8888`. Caddy listens on HTTP 80, with no automatic TLS/redirect.
-From a NetBird client, verify the three ordinary names with the cable unplugged.
+Expected TCP backends listen only on `127.0.0.1`: Immich `2283`, PhotoPrism
+`2342`, SearXNG `8888`, Gatus `8081`, ntfy `2586`, Glance `8082`, and linkding
+`9090`. FreshRSS uses `/run/phpfpm/freshrss.sock` rather than a backend TCP port.
+Caddy listens on HTTP 80, with no automatic TLS/redirect. From a NetBird client,
+verify all ordinary names with the cable unplugged.
 From the desktop, test Caddy over Ethernet without changing DNS:
 
 ```bash
@@ -195,6 +306,22 @@ curl --fail --resolve immich.home.arpa:80:10.42.0.2 http://immich.home.arpa/api/
 From a separate Wi-Fi LAN client, verify HTTP and backend connections are blocked
 using the laptop's **observed** DHCP address. Curl from GL702ZC to its own Wi-Fi
 address does not establish the ingress firewall boundary.
+
+Inspect local state without touching the originals archive:
+
+```bash
+sudo du -sh /var/lib/{gatus,ntfy-sh,glance,linkding,freshrss}
+sudo find /var/lib/ntfy-sh -maxdepth 2 -type f -printf '%p %s bytes\n'
+sudo find /var/lib/linkding -maxdepth 2 -type f -printf '%p %s bytes\n'
+sudo find /var/lib/freshrss -maxdepth 3 -type f -printf '%p %s bytes\n'
+```
+
+Gatus is bounded by result counts, ntfy keeps text for 72 hours and has no
+attachment directory, linkding snapshot jobs are disabled, and Glance should
+remain negligible. FreshRSS is the main variable-growth service; its SQLite
+database/cache size follows the feed list and the user purge policy. These state
+directories and the secret files need separate backups if their accounts or
+history matter. They do not provide an independent backup of media originals.
 
 Inspect the running PhotoPrism namespace read-only, with no archive write probe:
 

@@ -8,6 +8,7 @@
     ./backlight.nix
     ../../modules/crash-monitor.nix
     ./media.nix
+    ./personal-services.nix
     ./server.nix
 
     # Shared workstation profile

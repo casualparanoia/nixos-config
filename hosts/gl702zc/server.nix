@@ -20,6 +20,10 @@
       "http://immich.home.arpa".extraConfig = "reverse_proxy 127.0.0.1:2283";
       "http://photoprism.home.arpa".extraConfig = "reverse_proxy 127.0.0.1:2342";
       "http://search.home.arpa".extraConfig = "reverse_proxy 127.0.0.1:8888";
+      "http://status.home.arpa".extraConfig = "reverse_proxy 127.0.0.1:8081";
+      "http://notify.home.arpa".extraConfig = "reverse_proxy 127.0.0.1:2586";
+      "http://dashboard.home.arpa".extraConfig = "reverse_proxy 127.0.0.1:8082";
+      "http://bookmarks.home.arpa".extraConfig = "reverse_proxy 127.0.0.1:9090";
     };
   };
 

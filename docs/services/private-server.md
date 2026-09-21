@@ -12,14 +12,17 @@ source-files:
   - hosts/gl702zc/default.nix
   - hosts/gl702zc/server.nix
   - hosts/gl702zc/media.nix
+  - hosts/gl702zc/personal-services.nix
 ---
 
 # GL702ZC Private Server
 
 GL702ZC combines the existing graphical workstation profile with an unattended
-private home server. Two host-local files own the additional responsibilities:
+private home server. Three host-local files own the additional responsibilities:
 `server.nix` handles connectivity, ingress, search and availability; `media.nix`
-handles shared storage and photo applications. There is no shared server profile.
+handles shared storage and photo applications; `personal-services.nix` contains
+the small monitoring, notification, dashboard, bookmark and feed-reader layer.
+There is no shared server profile.
 
 Immich and NetBird were operational before this cleanup. Caddy, PhotoPrism,
 SearXNG and the declarative network/power changes require deliberate activation
@@ -34,6 +37,11 @@ desktop ------- optional enp6s0 ------->     |
                                            +-- immich.home.arpa ----> 127.0.0.1:2283
                                            +-- photoprism.home.arpa -> 127.0.0.1:2342
                                            +-- search.home.arpa ----> 127.0.0.1:8888
+                                           +-- status.home.arpa ----> 127.0.0.1:8081
+                                           +-- notify.home.arpa ----> 127.0.0.1:2586
+                                           +-- dashboard.home.arpa -> 127.0.0.1:8082
+                                           +-- bookmarks.home.arpa -> 127.0.0.1:9090
+                                           +-- rss.home.arpa -------> PHP-FPM socket
 ```
 
 NetBird is the normal access path, including when Ethernet is unplugged.
@@ -85,6 +93,11 @@ direct Ethernet plus rsync is the supported workflow.
 | `/var/lib/postgresql/17` | Stable module's Immich PostgreSQL database |
 | `/var/cache/immich` | Immich ML model/cache state |
 | `/var/lib/photoprism` | PhotoPrism SQLite index, configuration, sidecars, cache and backups |
+| `/var/lib/gatus` | Gatus SQLite status history, bounded per endpoint |
+| `/var/lib/ntfy-sh` | ntfy authentication and 72-hour text-message cache databases; attachments disabled |
+| `/var/lib/glance` | Glance working/state directory; the dashboard configuration is declarative |
+| `/var/lib/linkding` | linkding SQLite database, secret key, favicons and small preview assets |
+| `/var/lib/freshrss` | FreshRSS configuration, per-user SQLite database, logs and feed cache |
 | `/var/lib/caddy`, `/var/log/caddy` | Caddy state and access logs |
 | `/run/searx/settings.yml` | Runtime SearXNG settings, including substituted secret; recreated by `searx-init` |
 | `/var/lib/private-server-secrets` | Manually provisioned root-only secrets outside the Nix store |
@@ -107,6 +120,12 @@ previews are not backups of the original media. A backup plan must independently
 cover the originals as well as application databases/state. SQLite lives under
 PhotoPrism's state directory; no additional database server is deployed for the
 comparison.
+
+The new application databases are also operational state, not backups. Back up
+Gatus only if history matters, and back up ntfy authentication, linkding and
+FreshRSS state if those accounts/subscriptions must be recoverable. Keep the
+external secret directory in a separate protected backup. Glance and smartd have
+no important application database to preserve.
 
 ## PhotoPrism originals boundary
 
@@ -174,6 +193,51 @@ The built-in server logs queries to the journal; Caddy's default access logs
 also include request URLs. Treat these as private operational data. Private
 network access is the search instance's access boundary; it has no login screen.
 
+## Lightweight personal services
+
+Gatus checks the existing Caddy listener every five minutes through
+`127.0.0.1:80` with the intended `Host` header. This tests both hostname routing
+and each backend without depending on NetBird DNS from the server itself. The
+checks cover Immich's ping response, PhotoPrism's login redirect, SearXNG, ntfy's
+health API, linkding's health API, FreshRSS and Glance. SQLite retains at most
+2016 results and 50 events per endpoint: about seven days at this interval, not
+a long-term metrics archive.
+
+Gatus publishes an alert after three consecutive failures and a recovery after
+two consecutive successes. Its native ntfy provider posts to the local
+`server-alerts` topic using a token from
+`/var/lib/private-server-secrets/ntfy.env`. smartd monitors all locally detected
+SMART/NVMe devices with `-a`, without scheduled self-tests. Its small `-M exec`
+helper posts warnings to the same local topic with a separate token. Test
+notifications are disabled in the persistent configuration.
+
+ntfy listens only on `127.0.0.1:2586`. Its SQLite access database uses
+deny-by-default authorization: `casua` is provisioned statefully as the human
+administrator, while a `monitoring` user receives write-only access to
+`server-alerts`. Account and token creation use the ntfy CLI after activation;
+no password or token is declared in Nix. Text notifications remain cached for
+72 hours. Upload attachments are disabled rather than receiving ntfy's default
+multi-gigabyte attachment allowance.
+
+Glance listens on `127.0.0.1:8082` and provides a front door to Immich,
+PhotoPrism, SearXNG, Gatus, ntfy, linkding and FreshRSS. Its local server-stats
+widget shows CPU, memory and root-filesystem usage directly, without a metrics
+agent or time-series database.
+
+linkding listens on `127.0.0.1:9090` and uses its native SQLite setup. The
+initial `casua` superuser password comes from the external `linkding.env` file.
+Background archive/snapshot tasks are disabled, so the state directory is
+limited to the bookmark database, key, favicons and ordinary small previews.
+
+FreshRSS uses its native Caddy/PHP-FPM integration over a local Unix socket,
+form authentication, a `casua` default administrator and per-user SQLite state.
+Systemd delivers its initial password from the root-only external
+`freshrss-password` file to the unprivileged setup unit with `LoadCredential`.
+No API, extensions, full-text helper service, database server or automatic
+SQLite export is enabled. Configure the user's normal purge policy after first
+login; starred articles and items still present in upstream feeds are
+deliberately retained.
+
 ## Unattended power policy
 
 GL702ZC has no useful battery. Logind ignores lid close (including external-power
@@ -186,10 +250,11 @@ policy during a planned logind restart or reboot; see the runbook.
 ## Package boundary
 
 NixOS modules, Caddy, PostgreSQL and other module-default infrastructure use
-stable `nixos-26.05`; Home Manager follows `release-26.05`. Immich (including its
-ML passthrough), PhotoPrism and SearXNG explicitly use `pkgsUnstable`. NetBird
-retains its intentional unstable infrastructure exception. No input update or
-unstable module-set import is needed for this configuration.
+stable `nixos-26.05`; Home Manager follows `release-26.05`. Gatus, ntfy,
+smartmontools and their helper tools use stable packages. Immich (including its
+ML passthrough), PhotoPrism, SearXNG, Glance, linkding and FreshRSS explicitly use
+`pkgsUnstable`. NetBird retains its intentional unstable infrastructure
+exception. No input update or unstable module-set import is needed.
 
 ## Related and upstream references
 

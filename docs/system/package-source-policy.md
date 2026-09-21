@@ -97,10 +97,11 @@ Do not replace an intentionally selected external flake, Flatpak, or local packa
 Home Manager and NixOS modules are configuration layers, not independent package sources.
 
 For [[services/private-server|GL702ZC Private Server]], stable native modules use
-unstable Immich, PhotoPrism and SearXNG application packages. Caddy and database
-infrastructure retain stable defaults. NetBird is an intentional explicit unstable
-infrastructure exception. Investigate module/package incompatibilities locally;
-do not import the entire unstable module set or update unrelated flake inputs.
+unstable Immich, PhotoPrism, SearXNG, Glance, linkding and FreshRSS application
+packages. Gatus, ntfy, smartmontools, Caddy and database infrastructure remain
+stable. NetBird is an intentional explicit unstable infrastructure exception.
+Investigate module/package incompatibilities locally; do not import the entire
+unstable module set or update unrelated flake inputs.
 
 ## Local package preference
 

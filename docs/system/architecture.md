@@ -14,6 +14,7 @@ source-files:
   - hosts/gl702zc/default.nix
   - hosts/gl702zc/server.nix
   - hosts/gl702zc/media.nix
+  - hosts/gl702zc/personal-services.nix
   - hosts/desktop/default.nix
   - hosts/wsl/default.nix
   - home/home.nix
@@ -69,7 +70,8 @@ A minimal, CLI-focused NixOS-WSL host resides in `hosts/wsl/`. It is intentional
 
 GL702ZC additionally serves as a private home server while retaining the workstation
 profile. Its host-local `server.nix` owns private networking, Caddy ingress, search
-and unattended power policy; `media.nix` owns shared originals and photo services.
+and unattended power policy; `media.nix` owns shared originals and photo services;
+`personal-services.nix` owns the lightweight operational and personal web services.
 See [[services/private-server|GL702ZC Private Server]] for the boundaries and
 [[runbooks/private-server|Private Server Runbook]] for external state and deployment.
 
