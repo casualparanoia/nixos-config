@@ -19,6 +19,7 @@ in
     enable = true;
 
     package = pkgsUnstable.dms-shell;
+    quickshell.package = pkgsUnstable.quickshell;
 
     systemd = {
       enable = true;
