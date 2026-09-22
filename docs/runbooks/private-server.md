@@ -19,7 +19,7 @@ Use this with [[services/private-server|GL702ZC Private Server]] and
 [[runbooks/media-ingest|Media Transfer and Ingest]]. Configuration builds are
 non-activating; service deployment and archive indexing are separate actions.
 
-## Provision secrets before activation
+## Provision required secrets before activation
 
 Create the private directory outside the repository and Nix store:
 
@@ -75,6 +75,12 @@ SMARTD_NTFY_TOKEN=
 Until real tokens replace those empty values, ntfy's deny-by-default policy
 rejects alert publication. Do not reuse the linkding or FreshRSS passwords here.
 
+Do **not** create `/var/lib/private-server-secrets/immich-api-key` before the
+first activation of this configuration. Its absence is the safety gate that
+prevents the persistent album/tag timer from performing the first mutation before
+the operator reviews a dry-run. Provision it only in the ordered procedure
+below.
+
 When rotating SearXNG's key later, restart `searx-init.service` and then
 `searx.service` so `/run/searx/settings.yml` is regenerated. Changing an external
 file alone does not change the Nix derivation or reload it.
@@ -122,7 +128,7 @@ Inspect generated ingress and units:
 
 ```bash
 nix shell path:.#nixosConfigurations.gl702zc.pkgs.caddy -c caddy adapt --config result/etc/caddy/caddy_config --adapter caddyfile
-systemd-analyze verify result/etc/systemd/system/{gatus,ntfy-sh,smartd,glance,linkding,linkding-setup,freshrss-config}.service
+systemd-analyze verify result/etc/systemd/system/{immich-server,immich-album-sync,gatus,ntfy-sh,smartd,glance,linkding,linkding-setup,freshrss-config}.service
 ```
 
 Caddy validation also opens log destinations; before activation,
@@ -135,6 +141,11 @@ For PhotoPrism, verify the unit has `BindReadOnlyPaths=/srv/media`,
 for the password.
 There must be no trailing empty `LoadCredential=` clearing it. Inspection of a
 built unit establishes intended sandbox configuration, not running enforcement.
+
+For Immich, expect `PrivateDevices=no` only on `immich-server.service` and a
+single explicit `DeviceAllow=/dev/dri/renderD128`; the ML unit retains
+`PrivateDevices=yes`. The album-sync service must have a credential load, the
+secret-file condition and loopback-only IP policy.
 
 ### Validation evidence
 
@@ -169,11 +180,20 @@ checks. The working Immich endpoint still returned `pong`; nothing was activated
 
 ## Activation and NetworkManager transition
 
-Activate only during a deliberate deployment window after secret provisioning.
+Activate only during a deliberate deployment window after provisioning the
+required startup secrets above. The Immich API-key file must still be absent.
 This changes services and may run native module database migrations. Do not use
 `nixos-rebuild test` as a harmless check of stateful services. The normal switch
 removes the socket proxy and starts Caddy; if port 80 is busy afterward, inspect
 the old `immich-http-proxy.socket`/service before restarting anything.
+
+After reviewing the diff and a successful non-activating build, activate exactly
+the reviewed working tree with:
+
+```bash
+sudo test ! -e /var/lib/private-server-secrets/immich-api-key
+sudo nixos-rebuild switch --flake path:.#gl702zc
+```
 
 The declarative Ethernet profile has higher autoconnect priority than the earlier
 ad-hoc profile, but loading a profile does not replace an already active one.
@@ -204,6 +224,125 @@ therefore wait until a planned reboot or explicit logind restart. A logind
 restart can disrupt graphical sessions: schedule it, then verify the effective
 policy before relying on closing the lid. A successful build alone proves
 neither the live power behavior nor that the new profile is active.
+
+## Configure Immich video and album synchronization
+
+After activation, first confirm the device sandbox, then use **Administration →
+Settings → Video transcoding** in Immich 3.2.2:
+
+1. Keep the offline/video-conversion transcoding policy **Disabled**. Do not
+   resume or enqueue the existing video-conversion jobs.
+2. Select **VAAPI**, enable accelerated decode, and select
+   `/dev/dri/renderD128` when a device field is shown.
+3. Under real-time HLS transcoding, enable real-time transcoding, select only
+   **H.264**, and retain **480p**, **720p**, and **1080p**. Do not select HEVC or
+   AV1 for this first test.
+4. Save the settings, play one incompatible video at a forced lower quality,
+   and inspect logs/GPU activity while playback is active:
+
+```bash
+systemctl show immich-server -p PrivateDevices -p DeviceAllow -p SupplementaryGroups
+journalctl -fu immich-server
+sudo nix shell path:.#nixosConfigurations.gl702zc.pkgs.radeontop -c radeontop
+```
+
+Look for an Immich FFmpeg command using `-hwaccel vaapi` and
+`/dev/dri/renderD128`, plus non-zero GPU video-engine activity. Merely seeing a
+successful video or CPU use does not prove VAAPI was selected. Stop playback and
+confirm real-time segments do not accumulate unexpectedly; do not use a bulk job
+as the test.
+
+For the first album/tag synchronization, keep the API-key file absent during the
+switch, then stop the timer before provisioning it:
+
+```bash
+sudo systemctl stop immich-album-sync.timer
+```
+
+In Immich, create a dedicated API key as the owner of the external library under
+**Account settings → API keys**. Grant only `asset.read`, `album.read`,
+`album.create`, `albumAsset.create`, `albumAsset.delete`, `tag.read`,
+`tag.create` and `tag.asset`; these are the exact permissions advertised by the
+installed 3.2.2 OpenAPI operations used by the synchronizer. `tag.update` and
+`tag.delete` are neither needed nor granted. API keys act as their creating user,
+so use the same user that owns the external library and the managed albums/tags.
+Put the key alone, with no variable name or quotes, in the root-only external
+file:
+
+```bash
+sudoedit /var/lib/private-server-secrets/immich-api-key
+sudo chown root:root /var/lib/private-server-secrets/immich-api-key
+sudo chmod 0600 /var/lib/private-server-secrets/immich-api-key
+```
+
+Preview first and inspect the complete counts and proposed deltas. Do not start
+the oneshot until those results are approved:
+
+```bash
+sudo immich-album-sync --dry-run
+```
+
+After approval, apply once, inspect the resulting albums, tags and log, run a
+second dry-run to confirm all four views are unchanged, and only then resume
+automatic synchronization:
+
+```bash
+sudo systemctl start immich-album-sync.service
+journalctl -u immich-album-sync.service -n 100 --no-pager
+sudo immich-album-sync --dry-run
+sudo systemctl start immich-album-sync.timer
+systemctl list-timers immich-album-sync.timer
+```
+
+The first apply creates albums only when no same-name album exists. If an
+unmarked `Instagram` or `Main Media` album already exists, the command fails and
+does not adopt it; rename the unrelated album in the UI, preview again, and only
+then apply. If no `Source` hierarchy exists, the first apply uses Immich's
+hierarchical upsert to create exactly `Source/Instagram` and `Source/Main Media`.
+An incomplete hierarchy, an extra `Source/*` tag, or an incorrect parent
+relationship fails closed; resolve that conflict deliberately in the UI and
+preview again. The exact three-node `Source` hierarchy is reserved to this
+machine-managed classification and must not be manually repurposed. The
+synchronizer changes only membership in its two leaf tags and preserves every
+other tag on each asset.
+
+For the existing album-only deployment, stop the timer and move the key out of
+the unit's exact condition path **before switching to the tag-capable
+generation**. This remains safe even if activation starts the persistent timer.
+After the switch, stop the timer again, add only `tag.read`, `tag.create` and
+`tag.asset` to the existing key in Immich, and restore the unchanged secret
+file. Do not rotate or rewrite the key. Follow this ordered first-tag-run
+procedure:
+
+```bash
+sudo systemctl stop immich-album-sync.timer
+sudo mv /var/lib/private-server-secrets/immich-api-key \
+  /var/lib/private-server-secrets/immich-api-key.disabled
+sudo nixos-rebuild switch --flake path:.#gl702zc
+sudo systemctl stop immich-album-sync.timer
+# In Immich, add tag.read, tag.create and tag.asset to the existing key.
+sudo mv /var/lib/private-server-secrets/immich-api-key.disabled \
+  /var/lib/private-server-secrets/immich-api-key
+sudo chown root:root /var/lib/private-server-secrets/immich-api-key
+sudo chmod 0600 /var/lib/private-server-secrets/immich-api-key
+sudo immich-album-sync --dry-run
+# Inspect: album deltas should remain zero; tag additions should match 20,775 + 7,550.
+sudo systemctl start immich-album-sync.service
+journalctl -u immich-album-sync.service -n 100 --no-pager
+sudo immich-album-sync --dry-run
+# Inspect Source/Instagram and Source/Main Media in Immich Search, then:
+sudo systemctl start immich-album-sync.timer
+systemctl list-timers immich-album-sync.timer
+```
+
+Do not start the oneshot unless the first dry-run's path counts, zero album
+deltas and proposed tag deltas are approved. The apply adds the correct managed
+tag before removing the other managed tag from an asset. Membership requests
+are capped at 100 assets because Immich updates tag metadata and emits tag events
+per asset. The timer runs four times daily with jitter. API downtime causes that
+run to fail without changing ingestion; the next timer run retries the complete
+reconciliation. Run the oneshot manually after a large ingest when immediate
+membership is useful.
 
 ## Provision ntfy access after first activation
 
@@ -277,7 +416,7 @@ On GL702ZC, inspect service state, listening sockets, and logs without starting
 archive jobs:
 
 ```bash
-systemctl status caddy gatus ntfy-sh smartd glance linkding linkding-setup freshrss-config phpfpm-freshrss
+systemctl status caddy immich-server immich-album-sync.timer gatus ntfy-sh smartd glance linkding linkding-setup freshrss-config phpfpm-freshrss
 ss -lnt
 curl --fail http://127.0.0.1:2283/api/server/ping
 curl --fail --resolve immich.home.arpa:80:127.0.0.1 http://immich.home.arpa/api/server/ping
@@ -288,7 +427,7 @@ curl --fail --resolve status.home.arpa:80:127.0.0.1 http://status.home.arpa/heal
 curl --fail --resolve dashboard.home.arpa:80:127.0.0.1 http://dashboard.home.arpa/
 curl --fail --resolve rss.home.arpa:80:127.0.0.1 http://rss.home.arpa/
 curl --fail --resolve search.home.arpa:80:127.0.0.1 http://search.home.arpa/
-journalctl -u caddy -u gatus -u ntfy-sh -u smartd -u glance -u linkding -u freshrss-config -n 100 --no-pager
+journalctl -u caddy -u immich-server -u immich-album-sync -u gatus -u ntfy-sh -u smartd -u glance -u linkding -u freshrss-config -n 100 --no-pager
 netbird status
 ```
 
@@ -322,6 +461,24 @@ remain negligible. FreshRSS is the main variable-growth service; its SQLite
 database/cache size follows the feed list and the user purge policy. These state
 directories and the secret files need separate backups if their accounts or
 history matter. They do not provide an independent backup of media originals.
+
+Audit Immich state read-only before considering any storage action:
+
+```bash
+df -h /
+sudo du -x -h --max-depth=1 /srv/immich | sort -h
+sudo du -x -h --max-depth=2 /srv/immich | sort -h | tail -100
+sudo find /srv/immich -xdev -type f -path '*/encoded-video/*' -printf '%s\n' \
+  | awk '{ total += $1; count += 1 } END { printf "%d files, %.2f GiB\n", count, total / 1024^3 }'
+```
+
+The prior observation was roughly 8.9 GiB of encoded video from only 27
+completed offline conversions, within about 16 GiB total Immich media state.
+Those files are the first *potential* reclaim candidate only after correlating
+them with current Immich database/API state and confirming they are obsolete.
+Thumbnails, uploads, backups, profile data and ML cache have different roles.
+Do not remove any of them, or any transcode/cache directory, merely because its
+name looks generated; stop for approval with the measured breakdown.
 
 Inspect the running PhotoPrism namespace read-only, with no archive write probe:
 
@@ -364,3 +521,9 @@ deployment verification; avoid bulk conversion and importing.
 - **Storage pressure:** compare `df -h` and read-only `du -sh` of the state
   directories. Preserve the Immich application's stopped/disabled video queue;
   do not restart it as a general repair step.
+- **NetBird unexpectedly relayed on Windows:** the desktop needed a
+  process-scoped inbound UDP 49152–65535 firewall rule for
+  `C:\Program Files\Netbird\netbird.exe`. That changed the observed connection
+  from relayed (~4.5 MB/s) to P2P (~11 MB/s). Do not replace it with router port
+  forwarding; compare `netbird status`, raw Wi-Fi SSH (~14–15 MB/s), and direct
+  Ethernet (~111 MB/s) before blaming NixOS service routing.

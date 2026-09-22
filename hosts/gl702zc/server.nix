@@ -52,6 +52,10 @@
     ipv6.method = "disabled";
   };
 
+  # Batteryless host policy for predictable latency/behavior. Testing showed
+  # no Wi-Fi throughput improvement, so this is not a performance workaround.
+  networking.networkmanager.wifi.powersave = false;
+
   services.searx = {
     enable = true;
     package = pkgsUnstable.searxng;

@@ -73,10 +73,10 @@ NetworkManager's `ensureProfiles` creates `gl702zc-direct` on `enp6s0`:
 The desktop end must independently use `10.42.0.1/24` without gateway or DNS.
 The link must remain dedicated to the desktop, since HTTP is permitted there.
 
-Deployment measurements were about **112 MB/s** on direct 1 GbE versus
-**6.6 MB/s** through NetBird P2P selecting Wi-Fi endpoints. These are observations,
-not throughput guarantees. The cable is an optional transfer optimization and
-does not replace Wi-Fi's default route or change private DNS.
+Recent measurements were about **111 MB/s** on direct 1 GbE, **11 MB/s** through
+NetBird P2P over Wi-Fi, and **14–15 MB/s** over raw Wi-Fi SSH. These are
+observations, not throughput guarantees. The cable is an optional transfer
+optimization and does not replace Wi-Fi's default route or change private DNS.
 
 The earlier `Wired connection 1` profile was ad-hoc NetworkManager state. The
 runbook explains retiring it after the declarative profile becomes available.
@@ -126,6 +126,62 @@ Gatus only if history matters, and back up ntfy authentication, linkding and
 FreshRSS state if those accounts/subscriptions must be recoverable. Keep the
 external secret directory in a separate protected backup. Glance and smartd have
 no important application database to preserve.
+
+## Immich device access and managed albums/tags
+
+The Immich server receives only `/dev/dri/renderD128` through the native module's
+device allow-list. The module must set `PrivateDevices=no` so the render node is
+visible; the nonempty `DeviceAllow` list gives the unit a closed device policy
+that permits this node (and systemd's standard pseudo-devices), not all DRM
+devices. The render node is currently mode 0666, so adding `immich` to `video` or
+`render` would not add useful access and is intentionally avoided. VAAPI
+selection and real-time HLS policy remain UI-managed; offline video conversion
+must remain disabled.
+
+Immich 3.2.2 has static albums and an official workflow system. Workflows can
+match full paths and add assets on an event, but they cannot reconcile removals,
+provide the exact Main Media complement, or reliably backfill all existing
+assets. `scripts/immich-album-sync.py` therefore uses the versioned official API
+to maintain two ordinary albums and two hierarchical tags without changing
+asset visibility or files:
+
+- **Instagram** / **Source/Instagram** is every active external-library asset
+  whose original path begins with `/srv/media/stuff/instagram/`;
+- **Main Media** / **Source/Main Media** is every active external-library asset
+  whose original path begins with `/srv/media/stuff/`, except that Instagram
+  subtree.
+
+The albums provide collection and slideshow views. The tags expose the same
+classification as a composable Immich Search filter. `Source` and its two exact
+children are reserved to this machine-managed classification and must not be
+manually renamed, reparented, extended or repurposed.
+
+The trailing-slash boundary means `instagram-old` remains Main Media. A non-null
+Immich library ID excludes Immich-owned uploads even if a path were surprising.
+The synchronizer explicitly admits `timeline` and `archive` visibility. Internal
+`hidden` components, locked assets and soft-deleted trash are excluded; restored
+assets rejoin the desired set naturally, and stacked assets are included
+individually.
+The synchronizer scans the desired universe once, cursor-paginates membership
+searches, computes set deltas, batches only needed changes, and completes all
+additions before removals. Album changes use batches of 500. Tag changes use
+conservative batches of 100 because Immich 3.2.2 refreshes tag metadata and
+emits an event for each successfully changed asset. It never deletes, archives,
+unarchives, favorites, renames or writes an asset, and it modifies only the two
+managed tag memberships; every unrelated/manual tag is preserved. An exact
+description marker establishes album ownership; an unmarked same-name album
+causes a safe failure instead of being adopted.
+
+Tags have no description marker in Immich 3.2.2, so ownership is fail-closed:
+an absent `Source` namespace may be created by the stable hierarchical upsert,
+and an already-complete hierarchy containing exactly `Source`,
+`Source/Instagram` and `Source/Main Media` is treated as the reserved managed
+namespace. A partial tree, extra `Source/*` child, duplicate, or incorrect
+parent relationship aborts the run before membership mutation. The synchronizer
+never calls tag update or deletion endpoints.
+The API key is a root-owned external systemd credential. A four-times-daily timer
+is skipped when that file is absent and later runs naturally catch ongoing
+indexing.
 
 ## PhotoPrism originals boundary
 
@@ -243,6 +299,9 @@ deliberately retained.
 GL702ZC has no useful battery. Logind ignores lid close (including external-power
 and docked cases) and idle actions. Systemd disallows suspend, hibernation, hybrid
 sleep and suspend-then-hibernate. The graphical workstation remains available.
+NetworkManager disables Wi-Fi power saving only on this host for predictable
+latency on a batteryless server/workstation. Measurements showed no throughput
+improvement, so this is not a performance workaround or a shared default.
 NixOS intentionally does not automatically restart logind on a configuration
 change, because restarting it can disrupt sessions. Apply the effective lid
 policy during a planned logind restart or reboot; see the runbook.

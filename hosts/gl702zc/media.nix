@@ -1,10 +1,21 @@
 {
   config,
+  pkgs,
   pkgsUnstable,
   lib,
   ...
 }:
 
+let
+  immichApiKey = "/var/lib/private-server-secrets/immich-api-key";
+  immichAlbumSync = pkgs.writeShellApplication {
+    name = "immich-album-sync";
+    runtimeInputs = [ pkgs.python3 ];
+    text = ''
+      exec python3 ${../../scripts/immich-album-sync.py} "$@"
+    '';
+  };
+in
 {
   # Shared originals and application state: docs/services/private-server.md.
   services.immich = {
@@ -19,6 +30,10 @@
     openFirewall = false;
 
     mediaLocation = "/srv/immich";
+
+    # PrivateDevices otherwise hides DRM. Expose only the verified Polaris
+    # render node; its current 0666 mode needs no supplementary render group.
+    accelerationDevices = [ "/dev/dri/renderD128" ];
 
     environment = {
       IMMICH_MACHINE_LEARNING_TIMEOUT = "1200";
@@ -39,6 +54,58 @@
 
   users.users.casua.extraGroups = [ "media" ];
   users.users.immich.extraGroups = [ "media" ];
+
+  # The native option applies its device list to both Immich units. The AMD
+  # node is for server-side video transcoding, not this CPU-only ML worker.
+  systemd.services.immich-machine-learning.serviceConfig = {
+    DeviceAllow = lib.mkForce [ ];
+    PrivateDevices = lib.mkForce true;
+  };
+
+  environment.systemPackages = [ immichAlbumSync ];
+
+  # Static Immich albums and tags are reconciled through the supported API. The
+  # Condition keeps a missing operator-provisioned key from failing boot.
+  systemd.services.immich-album-sync = {
+    description = "Reconcile path-derived Immich albums and tags";
+    wants = [ "immich-server.service" ];
+    after = [ "immich-server.service" ];
+    unitConfig.ConditionPathExists = immichApiKey;
+    serviceConfig = {
+      Type = "oneshot";
+      DynamicUser = true;
+      LoadCredential = "immich-api-key:${immichApiKey}";
+      ExecStart = "${lib.getExe immichAlbumSync} --api-key-file %d/immich-api-key";
+
+      CapabilityBoundingSet = "";
+      NoNewPrivileges = true;
+      PrivateDevices = true;
+      PrivateTmp = true;
+      ProtectHome = true;
+      ProtectSystem = "strict";
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+        "AF_UNIX"
+      ];
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      IPAddressDeny = "any";
+      IPAddressAllow = "localhost";
+    };
+  };
+
+  systemd.timers.immich-album-sync = {
+    description = "Periodically reconcile path-derived Immich albums and tags";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*-*-* 03,09,15,21:17:00";
+      RandomizedDelaySec = "30m";
+      Persistent = true;
+      Unit = "immich-album-sync.service";
+    };
+  };
 
   systemd.tmpfiles.rules = [
     # Non-recursive: never repair or walk the real archive during activation.

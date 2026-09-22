@@ -9,3 +9,7 @@
 
 # direnv state; .envrc itself should be tracked
 .direnv/
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
